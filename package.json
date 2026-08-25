@@ -12,8 +12,9 @@
     "format": "oxfmt .",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "changeset": "changeset",
-    "publish-packages": "turbo run typecheck lint format build test && changeset version && changeset publish"
+    "changeset": "turbo run typecheck lint format build test && changeset",
+    "changeset:version": "turbo run typecheck lint format build test && changeset version",
+    "changeset:publish": "turbo run typecheck lint format build test && changeset publish"
   },
   "devDependencies": {
     "@changesets/cli": "^3.0.1",
