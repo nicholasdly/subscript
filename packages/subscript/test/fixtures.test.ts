@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { createSubscript, type Result } from "../src/index.ts";
+import { fetchCalls, resetFetchCalls, stubFetch } from "./fetch-stub.ts";
 import { accept } from "./fixtures/accept.ts";
 import { reject } from "./fixtures/reject.ts";
 import { REFERENCE_INSTANT, type Fixture } from "./fixtures/types.ts";
@@ -62,17 +63,22 @@ function assertExpect(result: Result, expect: Fixture["expect"]): void {
 }
 
 for (const fixture of fixtures) {
-  test(fixture.name, (t) => {
+  test(fixture.name, async (t) => {
+    resetFetchCalls();
     const subscript = createSubscript({
       locale: fixture.locale ?? "en-US",
       now: () => fixture.now ?? REFERENCE_INSTANT,
+      fetch: stubFetch,
     });
-    const result = subscript.evaluate(fixture.input);
+    const result = await subscript.evaluate(fixture.input);
     assertWellFormed(result);
     if (fixture.todo) {
       t.todo();
       return;
     }
     assertExpect(result, fixture.expect);
+    if (fixture.noFetch) {
+      assert.equal(fetchCalls, 0, "did not expect a Frankfurter call");
+    }
   });
 }

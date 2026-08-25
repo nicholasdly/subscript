@@ -4,6 +4,7 @@ import { test } from "node:test";
 import { dimensionsEqual } from "../src/dimension.ts";
 import {
   AREA,
+  CURRENCY,
   LENGTH,
   MASS,
   NONE,
@@ -11,6 +12,7 @@ import {
   TEMPERATURE,
   TIME,
   VOLUME,
+  isCurrency,
   type AffineKind,
 } from "../src/units/kinds.ts";
 import { UNITS } from "../src/units/table.ts";
@@ -102,8 +104,14 @@ test("absolute and difference temperature pairs are exactly the documented set",
 });
 
 test("each unit’s dimension matches its section", () => {
-  assert.equal(Object.keys(BY_DIMENSION).length, UNITS.length);
+  const si = UNITS.filter((unit) => !isCurrency(unit));
+  assert.equal(Object.keys(BY_DIMENSION).length, si.length);
   for (const unit of UNITS) {
+    if (isCurrency(unit)) {
+      assert.match(unit.id, /^[a-z]{3}$/, unit.id);
+      assert.equal(dimensionsEqual(unit.dimension, CURRENCY), true, unit.id);
+      continue;
+    }
     const expected = BY_DIMENSION[unit.id];
     assert.ok(expected, `unexpected id ${unit.id}`);
     assert.equal(dimensionsEqual(unit.dimension, expected), true, unit.id);

@@ -60,9 +60,12 @@ export const accept: Fixture[] = [
   {
     name: "usd-in-eur",
     input: "100 usd in eur",
-    expect: { ok: false, reason: "rate-unavailable" },
-    todo: true,
-    notes: "M3 correctly refuses (unknown words). Assert rate-unavailable from M4.",
+    expect: {
+      ok: true,
+      text: "€50.00",
+      unitId: "eur",
+      value: 50,
+    },
   },
   {
     name: "pst-in-tokyo",
@@ -232,5 +235,76 @@ export const accept: Fixture[] = [
     name: "overflow-exponent",
     input: "1e309",
     expect: { ok: false, reason: "precision-loss" },
+  },
+  {
+    name: "usd-identity",
+    input: "100 usd",
+    expect: { ok: true, text: "$100.00", unitId: "usd", value: 100 },
+    noFetch: true,
+  },
+  {
+    name: "usd-in-usd",
+    input: "100 usd in usd",
+    expect: { ok: true, text: "$100.00", unitId: "usd", value: 100 },
+    noFetch: true,
+  },
+  {
+    name: "dollar-prefix",
+    input: "$100",
+    expect: { ok: true, text: "$100.00", unitId: "usd", value: 100 },
+    noFetch: true,
+  },
+  {
+    name: "dollar-locale-cad",
+    input: "$100",
+    locale: "en-CA",
+    expect: { ok: true, text: "CA$100.00", unitId: "cad", value: 100 },
+    noFetch: true,
+  },
+  {
+    name: "us-dollar-prefix",
+    input: "US$100",
+    locale: "en-CA",
+    expect: { ok: true, text: "$100.00", unitId: "usd", value: 100 },
+    noFetch: true,
+  },
+  {
+    name: "mixed-last-wins",
+    input: "$200 + €200",
+    expect: { ok: true, text: "€300.00", unitId: "eur", value: 300 },
+  },
+  {
+    name: "uppercase-try",
+    input: "100 TRY in usd",
+    expect: {
+      ok: true,
+      text: "$3.33",
+      unitId: "usd",
+      value: 100 / 30,
+      eps: 1e-12,
+    },
+  },
+  {
+    name: "quote-failed",
+    input: "100 kzt in usd",
+    expect: { ok: false, reason: "rate-unavailable" },
+  },
+  {
+    name: "pound-to-usd",
+    input: "100 pounds in usd",
+    expect: { ok: false, reason: "dimension-mismatch" },
+    noFetch: true,
+  },
+  {
+    name: "dollar-times-days",
+    input: "$30 * 4 days",
+    expect: { ok: false, reason: "unknown-unit" },
+    noFetch: true,
+  },
+  {
+    name: "usd-times-eur",
+    input: "$10 * €5",
+    expect: { ok: false, reason: "unknown-unit" },
+    noFetch: true,
   },
 ];

@@ -1,7 +1,8 @@
 import { charAt, isLetter, isMark, skipWhitespace } from "./chars.ts";
 import { sourceIndex, type Normalized } from "./normalize.ts";
 import type { LexToken, Located, OperatorChar } from "./token.ts";
-import { matchTrie, type TrieNode } from "./units/trie.ts";
+import { UPPERCASE_ONLY_IDS } from "./units/aliases.ts";
+import { matchTrie, type TrieNode, type TrieValue } from "./units/trie.ts";
 
 const OPERATORS: readonly OperatorChar[] = ["+", "-", "*", "/", "^", "(", ")"];
 
@@ -9,6 +10,19 @@ const OPERATORS: readonly OperatorChar[] = ["+", "-", "*", "/", "^", "(", ")"];
 function operatorAt(text: string, index: number): OperatorChar | undefined {
   const ch = text.charAt(index);
   return OPERATORS.find((operator) => operator === ch);
+}
+
+function unitIdOf(value: TrieValue): string | undefined {
+  if (value.kind === "unit" || value.kind === "ambiguous") {
+    return value.unitId;
+  }
+  return undefined;
+}
+
+/** English-word ISO codes match only as three ASCII capitals. */
+function rejectedCase(value: TrieValue, raw: string): boolean {
+  const unitId = unitIdOf(value);
+  return unitId !== undefined && UPPERCASE_ONLY_IDS.has(unitId) && !/^[A-Z]{3}$/.test(raw);
 }
 
 function isDigit(text: string, index: number): boolean {
@@ -101,32 +115,34 @@ export function lex(normalized: Normalized, trie: TrieNode): LexToken[] {
       const end = i + match.length;
       const located = at(i, end);
       const { value } = match;
-      switch (value.kind) {
-        case "unit":
-          tokens.push({ ...located, kind: "unit", unitId: value.unitId });
-          break;
-        case "converter":
-          tokens.push({ ...located, kind: "converter", converter: value.converter });
-          break;
-        case "ambiguous":
-          tokens.push({
-            ...located,
-            kind: "ambiguous",
-            converter: value.converter,
-            unitId: value.unitId,
-          });
-          break;
-        case "function":
-          // `sqrt` is a function only when a `(` follows; otherwise it is a word.
-          tokens.push(
-            charAt(text, skipWhitespace(text, end)) === "("
-              ? { ...located, kind: "function", name: value.name }
-              : { ...located, kind: "unknown" },
-          );
-          break;
+      if (!rejectedCase(value, located.raw)) {
+        switch (value.kind) {
+          case "unit":
+            tokens.push({ ...located, kind: "unit", unitId: value.unitId });
+            break;
+          case "converter":
+            tokens.push({ ...located, kind: "converter", converter: value.converter });
+            break;
+          case "ambiguous":
+            tokens.push({
+              ...located,
+              kind: "ambiguous",
+              converter: value.converter,
+              unitId: value.unitId,
+            });
+            break;
+          case "function":
+            // `sqrt` is a function only when a `(` follows; otherwise it is a word.
+            tokens.push(
+              charAt(text, skipWhitespace(text, end)) === "("
+                ? { ...located, kind: "function", name: value.name }
+                : { ...located, kind: "unknown" },
+            );
+            break;
+        }
+        i = end;
+        continue;
       }
-      i = end;
-      continue;
     }
 
     const op = operatorAt(text, i);

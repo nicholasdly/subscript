@@ -5,21 +5,21 @@ import { createSubscript } from "../src/index.ts";
 
 const subscript = createSubscript();
 
-function unitId(input: string): string | undefined {
-  const result = subscript.evaluate(input);
+async function unitId(input: string): Promise<string | undefined> {
+  const result = await subscript.evaluate(input);
   return result.ok ? result.value.unit.id : undefined;
 }
 
-test("1 m in ft prefers converter over inch", () => {
-  const result = createSubscript().evaluate("1 m in ft");
+test("1 m in ft prefers converter over inch", async () => {
+  const result = await createSubscript().evaluate("1 m in ft");
   assert.equal(result.ok, true);
   if (result.ok) {
     assert.equal(result.value.unit.id, "foot");
   }
 });
 
-test("5 ft 11 in uses the inch reading and larger-unit output", () => {
-  const result = createSubscript().evaluate("5 ft 11 in");
+test("5 ft 11 in uses the inch reading and larger-unit output", async () => {
+  const result = await createSubscript().evaluate("5 ft 11 in");
   assert.equal(result.ok, true);
   if (result.ok) {
     assert.equal(result.value.unit.id, "foot");
@@ -27,16 +27,16 @@ test("5 ft 11 in uses the inch reading and larger-unit output", () => {
   }
 });
 
-test("5 ft 11 in cm converts the mixed length", () => {
-  assert.equal(unitId("5 ft 11 in cm"), "centimetre");
+test("5 ft 11 in cm converts the mixed length", async () => {
+  assert.equal(await unitId("5 ft 11 in cm"), "centimetre");
 });
 
-test("11 in is inches", () => {
-  assert.equal(unitId("11 in"), "inch");
+test("11 in is inches", async () => {
+  assert.equal(await unitId("11 in"), "inch");
 });
 
-test("11 in cm converts inches to centimetres", () => {
-  const result = createSubscript().evaluate("11 in cm");
+test("11 in cm converts inches to centimetres", async () => {
+  const result = await createSubscript().evaluate("11 in cm");
   assert.equal(result.ok, true);
   if (result.ok) {
     assert.equal(result.value.unit.id, "centimetre");

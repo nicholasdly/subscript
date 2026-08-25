@@ -20,4 +20,5 @@ export type Fixture = {
     | { ok: false; reason: Failure["kind"] };
   todo?: boolean;
   notes?: string;
+  noFetch?: boolean;
 };

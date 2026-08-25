@@ -121,3 +121,22 @@ test("1e309 is still a number token, non-finite", () => {
     assert.equal(result[0].value, Infinity);
   }
 });
+
+test("TRY is currency and try is unknown", () => {
+  const upper = tokens("100 TRY");
+  assert.equal(upper[1]?.kind, "unit");
+  if (upper[1]?.kind === "unit") {
+    assert.equal(upper[1].unitId, "try");
+  }
+  const lower = tokens("100 try");
+  assert.equal(lower[1]?.kind, "unknown");
+});
+
+test("$100 is unit then number before rewrite", () => {
+  const result = tokens("$100");
+  assert.equal(result[0]?.kind, "unit");
+  if (result[0]?.kind === "unit") {
+    assert.equal(result[0].unitId, "usd");
+  }
+  assert.equal(result[1]?.kind, "number");
+});

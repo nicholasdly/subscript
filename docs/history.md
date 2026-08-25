@@ -14,6 +14,44 @@ When a plan in `docs/plans/` is done, add an entry at the top of the log:
 
 ## Log
 
+### 2026-08-25 — M4 Currency
+
+Plan: [`docs/plans/m4-currency.md`](./plans/m4-currency.md)
+
+**What landed**
+
+- `evaluate` / instance `evaluate` return `Promise<Result>`. `spans` stays synchronous
+  and never fetches.
+- Default quote is Frankfurter v2 `GET /v2/rate/{BASE}/{QUOTE}`; multiply by `data.rate`.
+  No triangulation, no SDK, no npm deps. Users do not pass a provider; `RateProvider`
+  is gone. `SubscriptConfig.fetch` is a test/self-host seam.
+- No cache across evaluates. A `Map` keyed `"usd/eur"` lives for one evaluate only.
+  Identity (`100 usd`, `100 usd in usd`, `$10+$5`) does not fetch. Failed HTTP /
+  timeout / bad JSON / `rate <= 0` is `{ kind: "rate-unavailable", currency }`.
+- Eighth dimension `C`. Closed catalog of 49 ISO 4217 codes, `scale: 1`. Mixed
+  `$ + €` is last-wins (convert left onto right). `$30 * 4 days` / `$10 * €5` is
+  `unknown-unit`. `pound` stays mass.
+- `$` / `dollar` follow BCP-47 region (`CA→cad`, `AU→aud`, else `usd` including
+  `en-GB`). Prefixes `US$`, `C$`/`CA$`, `A$`/`AU$`, `NZ$`, `S$`, `HK$`, `NT$`, `R$`.
+  English-word ISO codes match only as three ASCII capitals (`TRY` vs `try`).
+- Money `text` uses `Intl.NumberFormat("en-US", { style: "currency" })`. Compact
+  money is `k/M/B/T/P` (`B` = 1e9, not `G`). Prefix rewrite swaps `$100` to number
+  then unit.
+
+**Treat as given**
+
+- Default evaluate hits the network for cross-currency conversion. This reverses
+  `plan.md` §3.5’s “no network by default / injected provider.”
+- Tests inject `fetch`. `npm test` never calls `api.frankfurter.dev`.
+- `quantity` / `mul` / `sqrt` stay sync. `convert` / `add` / `sub` / `div` are
+  `Promise<Result>` and take an optional per-call quote session.
+
+**Deferred**
+
+- Caching (Redis / TTL / HTTP cache), injected `RateProvider`, historical dates,
+  comment-word tolerance, implicit `$ × days`, crypto, time zones, `apps/web`
+  product work, compact input (`$1k`).
+
 ### 2026-08-25 — M3 Formatting
 
 Plan: [`docs/plans/m3-formatting.md`](./plans/m3-formatting.md)

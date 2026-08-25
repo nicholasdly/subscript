@@ -81,4 +81,24 @@ export const reject: Fixture[] = [
     input: "1 e3",
     expect: { ok: false, reason: "not-an-expression" },
   },
+  {
+    name: "lowercase-try",
+    input: "100 try",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
+  {
+    name: "lowercase-all",
+    input: "100 all in usd",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
+  {
+    name: "usd-100-words",
+    input: "usd 100",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
+  {
+    name: "dollar-for-lunch",
+    input: "$10 for lunch",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
 ];

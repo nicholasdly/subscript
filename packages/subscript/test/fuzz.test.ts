@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { evaluate, type Result } from "../src/index.ts";
+import { createSubscript, type Result } from "../src/index.ts";
+import { stubFetch } from "./fetch-stub.ts";
 
 const SEED = 0x51b5c210;
 const ALPHABET =
@@ -39,7 +40,8 @@ function assertWellFormed(result: Result): void {
   }
 }
 
-test("seeded random strings never throw and always return a Result", () => {
+test("seeded random strings never throw and always return a Result", async () => {
+  const subscript = createSubscript({ fetch: stubFetch });
   const started = Date.now();
   const next = lcg(SEED);
   for (let n = 0; n < 1000; n++) {
@@ -48,14 +50,8 @@ test("seeded random strings never throw and always return a Result", () => {
     for (let i = 0; i < length; i++) {
       input += ALPHABET.charAt(next() % ALPHABET.length);
     }
-    let result: Result | undefined;
-    assert.doesNotThrow(() => {
-      result = evaluate(input);
-    });
-    assert.ok(result);
-    if (result !== undefined) {
-      assertWellFormed(result);
-    }
+    const result = await subscript.evaluate(input);
+    assertWellFormed(result);
   }
   assert.ok(Date.now() - started < 5000, "fuzz exceeded 5s");
 });

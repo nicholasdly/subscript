@@ -1,4 +1,4 @@
-import { dimension, rational, type Dimension } from "../dimension.ts";
+import { dimension, dimensionsEqual, rational, type Dimension } from "../dimension.ts";
 
 export type AffineKind = "linear" | "absolute" | "difference";
 
@@ -32,3 +32,8 @@ export const TEMPERATURE = dimension({ Θ: ONE });
 export const AREA = dimension({ L: TWO });
 export const VOLUME = dimension({ L: THREE });
 export const SPEED = dimension({ L: ONE, T: NEG_ONE });
+export const CURRENCY = dimension({ C: ONE });
+
+export function isCurrency(def: UnitDef): boolean {
+  return dimensionsEqual(def.dimension, CURRENCY);
+}

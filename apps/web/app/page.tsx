@@ -5,16 +5,25 @@ import { useEffect, useState } from "react";
 
 import { Input } from "@/components/ui/input";
 
-const json = (data: any) => JSON.stringify(data, null, 2);
+const json = (data: unknown) => JSON.stringify(data, null, 2);
 
 const DEFAULT_QUERY = "2 lbs in grams";
-const DEFAULT_RESULT = json(evaluate(DEFAULT_QUERY));
 
 export default function Page() {
   const [query, setQuery] = useState(DEFAULT_QUERY);
-  const [result, setResult] = useState(DEFAULT_RESULT);
+  const [result, setResult] = useState("");
 
-  useEffect(() => setResult(json(evaluate(query))), [query]);
+  useEffect(() => {
+    let cancelled = false;
+    void evaluate(query).then((data) => {
+      if (!cancelled) {
+        setResult(json(data));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [query]);
 
   return (
     <main className="mx-auto my-8 max-w-md p-5">

@@ -10,7 +10,6 @@ export type {
   LimitName,
   NowFn,
   Quantity,
-  RateProvider,
   Result,
   Span,
   SpanKind,

@@ -6,9 +6,12 @@ import * as numeric from "./numeric.ts";
 import { parse } from "./parse.ts";
 import { add, convert, div, mul, quantity, sqrt, sub } from "./quantity.ts";
 import { enumerateReadings, readsInAsConverter } from "./rank.ts";
+import { newSession, type QuoteSession } from "./rates.ts";
 import { rewrite } from "./rewrite.ts";
 import type { Ast, Token } from "./token.ts";
 import type { Alternate, LimitName, Quantity, Result, Span, SpanKind } from "./types.ts";
+import { isCurrency } from "./units/kinds.ts";
+import { lookupUnit } from "./units/lookup.ts";
 import type { TrieNode } from "./units/trie.ts";
 
 export type PipelineOutput = {
@@ -27,8 +30,10 @@ function spanKind(token: Token): SpanKind {
   switch (token.kind) {
     case "number":
       return "number";
-    case "unit":
-      return "unit";
+    case "unit": {
+      const def = lookupUnit(token.unitId);
+      return def !== undefined && isCurrency(def) ? "currency" : "unit";
+    }
     case "converter":
       return "converter";
     case "function":
@@ -48,6 +53,7 @@ function spansFor(tokens: readonly Token[]): Span[] {
       spans.push({ start: token.start, end: token.end, kind: spanKind(token) });
     }
   }
+  spans.sort((a, b) => a.start - b.start || a.end - b.end);
   return spans;
 }
 
@@ -62,43 +68,42 @@ function power(base: Quantity, exponent: Quantity): Result {
   return quantity(numeric.pow(base.value, exponent.value));
 }
 
-function evaluateAst(ast: Ast): Result {
+async function evaluateAst(ast: Ast, rates: QuoteSession): Promise<Result> {
   switch (ast.kind) {
     case "number":
       return quantity(ast.value);
     case "quantity":
       return quantity(ast.value, ast.unitId);
     case "unary": {
-      const inner = evaluateAst(ast.inner);
-      // Negating the literal, not scaling it: `-20 °C` is a temperature, not 20 × -1.
+      const inner = await evaluateAst(ast.inner, rates);
       return inner.ok ? quantity(-inner.value.value, inner.value.unit.id) : inner;
     }
     case "sqrt": {
-      const inner = evaluateAst(ast.inner);
+      const inner = await evaluateAst(ast.inner, rates);
       return inner.ok ? sqrt(inner.value) : inner;
     }
     case "convert": {
-      const inner = evaluateAst(ast.expr);
-      return inner.ok ? convert(inner.value, ast.toId) : inner;
+      const inner = await evaluateAst(ast.expr, rates);
+      return inner.ok ? convert(inner.value, ast.toId, rates) : inner;
     }
     case "binary": {
-      const left = evaluateAst(ast.left);
+      const left = await evaluateAst(ast.left, rates);
       if (!left.ok) {
         return left;
       }
-      const right = evaluateAst(ast.right);
+      const right = await evaluateAst(ast.right, rates);
       if (!right.ok) {
         return right;
       }
       switch (ast.op) {
         case "+":
-          return add(left.value, right.value);
+          return add(left.value, right.value, rates);
         case "-":
-          return sub(left.value, right.value);
+          return sub(left.value, right.value, rates);
         case "*":
           return mul(left.value, right.value);
         case "/":
-          return div(left.value, right.value);
+          return div(left.value, right.value, rates);
         case "^":
           return power(left.value, right.value);
       }
@@ -147,7 +152,12 @@ function withFormat(
   return { ...result, text: format(result.value) };
 }
 
-export function runPipeline(input: string, trie: TrieNode, format: Formatter): PipelineOutput {
+export async function runPipeline(
+  input: string,
+  trie: TrieNode,
+  format: Formatter,
+  fetchFn: typeof globalThis.fetch,
+): Promise<PipelineOutput> {
   if (input.length > INPUT_LENGTH_LIMIT) {
     return { result: limitExceeded("input-length"), spans: [] };
   }
@@ -157,12 +167,13 @@ export function runPipeline(input: string, trie: TrieNode, format: Formatter): P
     return nothing;
   }
 
+  const rates = newSession(fetchFn);
   const evaluated: Reading[] = [];
   for (const reading of readings) {
     const tokens = rewrite(reading);
     const parsed = parse(tokens);
     if (parsed.ok) {
-      evaluated.push({ result: evaluateAst(parsed.ast), tokens });
+      evaluated.push({ result: await evaluateAst(parsed.ast, rates), tokens });
     } else if (parsed.limit !== undefined) {
       evaluated.push({ result: limitExceeded(parsed.limit), tokens });
     }
@@ -184,4 +195,28 @@ export function runPipeline(input: string, trie: TrieNode, format: Formatter): P
     result: alternates.length > 0 ? { ...result, alternates } : result,
     spans: spansFor(winner.tokens),
   };
+}
+
+/** Parse and rank without evaluating, so coloring never quotes Frankfurter. */
+export function spansForInput(input: string, trie: TrieNode): readonly Span[] {
+  if (input.length > INPUT_LENGTH_LIMIT) {
+    return [];
+  }
+
+  const readings = enumerateReadings(lex(normalize(input), trie));
+  if (readings === undefined) {
+    return [];
+  }
+
+  const parsed: { tokens: readonly Token[] }[] = [];
+  for (const reading of readings) {
+    const tokens = rewrite(reading);
+    const result = parse(tokens);
+    if (result.ok) {
+      parsed.push({ tokens });
+    }
+  }
+
+  const winner = parsed.find((reading) => readsInAsConverter(reading.tokens)) ?? parsed[0];
+  return winner === undefined ? [] : spansFor(winner.tokens);
 }

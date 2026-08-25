@@ -53,7 +53,3 @@ export type Failure =
 export type Result =
   | { ok: true; value: Quantity; text: string; alternates?: readonly Alternate[] }
   | { ok: false; reason: Failure };
-
-export type RateProvider = {
-  quote(from: string, to: string): unknown;
-};
