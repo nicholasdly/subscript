@@ -1,0 +1,21 @@
+{
+  "name": "@repo/subscript",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/parse.ts",
+      "default": "./dist/parse.ts"
+    }
+  },
+  "scripts": {
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@repo/typescript-config": "*",
+    "@types/node": "^20",
+    "typescript": "latest"
+  }
+}
