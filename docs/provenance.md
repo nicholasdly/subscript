@@ -14,6 +14,32 @@ When a plan in `docs/plans/` is done, add an entry at the top of the log:
 
 ## Log
 
+### 2026-08-25 — M1 Quantity, dimensions, affine units
+
+Plan: [`docs/plans/m1-quantity.md`](./plans/m1-quantity.md)
+
+**What landed**
+
+- Programmatic API: `quantity`, `convert`, `add`, `sub`, `mul`, `div`, `sqrt`. All return `Result`; none throw.
+- Rational-exponent dimension vector over the seven SI base dimensions; float64 arithmetic isolated in `numeric.ts`.
+- Hand-authored unit table (length, mass, time, temperature, area, volume, speed) with a citation on every row.
+- Affine temperatures as distinct units (`celsius` / `delta-celsius`, `fahrenheit` / `delta-fahrenheit`). Kelvin is linear.
+- `evaluate` still always returns `not-an-expression`. NL accept fixtures remain todos.
+
+**Treat as given**
+
+- Public `Quantity` is still `{ value, unit }` with no `offset` field. Affine kind lives on the internal unit record.
+- Canonical ids are SI spellings (`metre`, `litre`, `celsius`). Aliases are M2.
+- Mixed-unit multiplication only yields a named unit in the table (or dimensionless); `kg × L` is `unknown-unit`.
+- Larger unit wins on addition; a dimensionless operand assimilates the other unit.
+- Year is the mean Gregorian year (365.2425 days); month is year / 12.
+- US gallon is 231 in³; imperial gallon is 4.54609 L. Locale-default `gallon` / `oz` is M2.
+- Sources used: SI Brochure 9, NIST SP 811 Appendix B.8, NIST Handbook 44 Appendix C, 1959 International Yard and Pound Agreement.
+
+**Deferred**
+
+- Lexer, parser, wiring `evaluate`, aliases, `Intl` formatting, currency, time zones, `apps/web`, LICENSE.
+
 ### 2026-08-25 — M0 Foundations
 
 Plan: [`docs/plans/m0-foundations.md`](./plans/m0-foundations.md)
