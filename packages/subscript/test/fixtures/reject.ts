@@ -71,4 +71,14 @@ export const reject: Fixture[] = [
     input: "10 m for scale",
     expect: { ok: false, reason: "not-an-expression" },
   },
+  {
+    name: "incomplete-exponent",
+    input: "1e",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
+  {
+    name: "spaced-exponent",
+    input: "1 e3",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
 ];

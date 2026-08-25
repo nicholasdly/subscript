@@ -1,4 +1,4 @@
-import { formatQuantity } from "./format.ts";
+import type { Formatter } from "./format.ts";
 import { lex } from "./lex.ts";
 import { INPUT_LENGTH_LIMIT } from "./limits.ts";
 import { normalize } from "./normalize.ts";
@@ -116,7 +116,11 @@ function sameQuantity(a: Quantity, b: Quantity): boolean {
 }
 
 /** Other readings that also evaluated, to a different answer than the winner's. */
-function alternatesFor(winner: Reading, succeeded: readonly Reading[]): Alternate[] {
+function alternatesFor(
+  winner: Reading,
+  succeeded: readonly Reading[],
+  format: Formatter,
+): Alternate[] {
   const alternates: Alternate[] = [];
   for (const reading of succeeded) {
     if (
@@ -129,14 +133,21 @@ function alternatesFor(winner: Reading, succeeded: readonly Reading[]): Alternat
     }
     alternates.push({
       value: reading.result.value,
-      text: formatQuantity(reading.result.value),
+      text: format(reading.result.value),
       reason: readsInAsConverter(reading.tokens) ? "in as converter" : "in as inch",
     });
   }
   return alternates;
 }
 
-export function runPipeline(input: string, trie: TrieNode): PipelineOutput {
+function withFormat(
+  result: Extract<Result, { ok: true }>,
+  format: Formatter,
+): Extract<Result, { ok: true }> {
+  return { ...result, text: format(result.value) };
+}
+
+export function runPipeline(input: string, trie: TrieNode, format: Formatter): PipelineOutput {
   if (input.length > INPUT_LENGTH_LIMIT) {
     return { result: limitExceeded("input-length"), spans: [] };
   }
@@ -167,9 +178,10 @@ export function runPipeline(input: string, trie: TrieNode): PipelineOutput {
     return { result: winner.result, spans: [] };
   }
 
-  const alternates = alternatesFor(winner, succeeded);
+  const alternates = alternatesFor(winner, succeeded, format);
+  const result = withFormat(winner.result, format);
   return {
-    result: alternates.length > 0 ? { ...winner.result, alternates } : winner.result,
+    result: alternates.length > 0 ? { ...result, alternates } : result,
     spans: spansFor(winner.tokens),
   };
 }

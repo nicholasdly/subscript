@@ -16,7 +16,11 @@ function isDigit(text: string, index: number): boolean {
   return code >= 48 && code <= 57;
 }
 
-/** ASCII digits with at most one `.`. No sign, no exponent, no separators. */
+/**
+ * ASCII digits with at most one `.` and an optional `e`/`E` exponent.
+ * No sign on the mantissa (unary minus is Pratt). Incomplete exponents
+ * (`1e`, `1e+`) are left for the next token. Overflow is still a number.
+ */
 function readNumber(text: string, from: number): { value: number; end: number } | undefined {
   let i = from;
   let digits = 0;
@@ -34,8 +38,22 @@ function readNumber(text: string, from: number): { value: number; end: number } 
   if (digits === 0) {
     return undefined;
   }
-  const value = Number(text.slice(from, i));
-  return Number.isFinite(value) ? { value, end: i } : undefined;
+  const e = text.charAt(i);
+  if (e === "e" || e === "E") {
+    let j = i + 1;
+    const sign = text.charAt(j);
+    if (sign === "+" || sign === "-") {
+      j += 1;
+    }
+    const expStart = j;
+    while (isDigit(text, j)) {
+      j += 1;
+    }
+    if (j > expStart) {
+      i = j;
+    }
+  }
+  return { value: Number(text.slice(from, i)), end: i };
 }
 
 /** A maximal run of letters and marks, or the single character that starts it. */

@@ -14,6 +14,35 @@ When a plan in `docs/plans/` is done, add an entry at the top of the log:
 
 ## Log
 
+### 2026-08-25 — M3 Formatting
+
+Plan: [`docs/plans/m3-formatting.md`](./plans/m3-formatting.md)
+
+**What landed**
+
+- `format.ts` uses hoisted `Intl.NumberFormat` for the number (six significant figures,
+  `halfExpand`, no grouping). The unit is always `Unit.symbol`.
+- Compact `300k` / `3.3M` / `1G` / `1T` / `1P` on dimensionless `|n| >= 1000`, default on,
+  `createSubscript({ compact: false })` to disable. Not a lexer of `k` / `M`.
+- `numeric.addChecked` / `subChecked`: lost addend → `precision-loss`; cancellation residue
+  snaps to `0`. Scale math still uses the primitive `+` / `-`.
+- Lexer accepts `1e3` / `1E-3`; overflow `1e309` is a number token that evaluates to
+  `precision-loss`. Incomplete `1e` is `not-an-expression`.
+- Every non-todo accept fixture asserts `text`. `checkText` is gone.
+
+**Treat as given**
+
+- Six significant figures; integers print with `String(n)`. `Quantity.value` is still the
+  float; rounding is display-only except cancellation, which writes `0`.
+- Compact is dimensionless-only. `k` remains kelvin. Compact `text` is not valid input.
+- Locale still picks gallon / fl oz only. Output numerals are Latin `.`, no grouping.
+- `Intl` does not format units (`style: "unit"` is out). CLDR `unitPreferenceData` is out.
+
+**Deferred**
+
+- Currency formatting, time zones, grouping / comma decimals, compact _input_, `apps/web`,
+  LICENSE.
+
 ### 2026-08-25 — Post-M2 review: three bug fixes and a simplification pass
 
 No plan. A read of `packages/subscript` after M2 landed. `apps/web` untouched.

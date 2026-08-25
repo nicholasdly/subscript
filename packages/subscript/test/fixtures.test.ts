@@ -51,9 +51,7 @@ function assertExpect(result: Result, expect: Fixture["expect"]): void {
       } else {
         assert.ok(Math.abs(result.value.value - expect.value) <= eps);
       }
-      if (expect.checkText) {
-        assert.equal(result.text, expect.text);
-      }
+      assert.equal(result.text, expect.text);
     }
     return;
   }

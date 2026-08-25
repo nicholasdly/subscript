@@ -81,3 +81,43 @@ test("minimum does not match min", () => {
   assert.equal(result.length, 1);
   assert.equal(result[0]?.kind, "unknown");
 });
+
+test("1e3 is a single number token", () => {
+  const result = tokens("1e3");
+  assert.equal(result.length, 1);
+  assert.equal(result[0]?.kind, "number");
+  if (result[0]?.kind === "number") {
+    assert.equal(result[0].value, 1000);
+  }
+});
+
+test("1E-3 is a single number token", () => {
+  const result = tokens("1E-3");
+  assert.equal(result.length, 1);
+  assert.equal(result[0]?.kind, "number");
+  if (result[0]?.kind === "number") {
+    assert.equal(result[0].value, 0.001);
+  }
+});
+
+test("1e3m is number then metre", () => {
+  const result = tokens("1e3m");
+  assert.equal(result.length, 2);
+  assert.equal(result[0]?.kind, "number");
+  if (result[0]?.kind === "number") {
+    assert.equal(result[0].value, 1000);
+  }
+  assert.equal(result[1]?.kind, "unit");
+  if (result[1]?.kind === "unit") {
+    assert.equal(result[1].unitId, "metre");
+  }
+});
+
+test("1e309 is still a number token, non-finite", () => {
+  const result = tokens("1e309");
+  assert.equal(result.length, 1);
+  assert.equal(result[0]?.kind, "number");
+  if (result[0]?.kind === "number") {
+    assert.equal(result[0].value, Infinity);
+  }
+});

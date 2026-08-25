@@ -148,3 +148,15 @@ test("quantity never throws on non-finite values or empty ids", () => {
   assertFail(quantity(Infinity, "metre"), "precision-loss");
   assertFail(quantity(1, ""), "unknown-unit");
 });
+
+test("adding a lost addend is precision-loss", () => {
+  assertFail(add(q(1e100), q(1)), "precision-loss");
+});
+
+test("subtracting two close irrationals snaps to zero", () => {
+  const result = sub(q(Math.sqrt(2)), q(2 ** 0.5));
+  assertQty(result, "1", 0);
+  if (result.ok) {
+    assert.equal(result.text, "0");
+  }
+});

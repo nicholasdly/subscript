@@ -33,3 +33,12 @@ test("spans colors 20 c to f", () => {
     { start: 8, end: 9, kind: "unit" },
   ]);
 });
+
+test("compact can be disabled per instance", () => {
+  const subscript = createSubscript({ compact: false });
+  const result = subscript.evaluate("1000");
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.text, "1000");
+  }
+});

@@ -39,6 +39,14 @@ function ok(value: number, def: UnitDef): Result {
   return { ok: true, value: result, text: formatQuantity(result) };
 }
 
+function fromOutcome(outcome: numeric.NumericOutcome, def: UnitDef): Result {
+  return outcome.ok ? ok(outcome.value, def) : precisionLoss();
+}
+
+function fromOutcomeSI(outcome: numeric.NumericOutcome, dest: UnitDef): Result {
+  return outcome.ok ? ok(fromSI(outcome.value, dest), dest) : precisionLoss();
+}
+
 function toSI(value: number, def: UnitDef): number {
   return numeric.add(numeric.mul(value, def.scale), def.offset);
 }
@@ -119,10 +127,10 @@ export function add(a: Quantity, b: Quantity): Result {
   return withUnits(a, b, (aDef, bDef) => {
     // A bare number takes on the other operand's unit.
     if (isDimensionless(bDef.dimension)) {
-      return ok(numeric.add(a.value, b.value), aDef);
+      return fromOutcome(numeric.addChecked(a.value, b.value), aDef);
     }
     if (isDimensionless(aDef.dimension)) {
-      return ok(numeric.add(b.value, a.value), bDef);
+      return fromOutcome(numeric.addChecked(b.value, a.value), bDef);
     }
     if (!dimensionsEqual(aDef.dimension, bDef.dimension)) {
       return mismatch(aDef, bDef);
@@ -138,7 +146,7 @@ export function add(a: Quantity, b: Quantity): Result {
         : bDef.affine === "absolute"
           ? bDef
           : largerUnit(aDef, bDef);
-    return ok(fromSI(numeric.add(toSI(a.value, aDef), toSI(b.value, bDef)), dest), dest);
+    return fromOutcomeSI(numeric.addChecked(toSI(a.value, aDef), toSI(b.value, bDef)), dest);
   });
 }
 
@@ -149,12 +157,12 @@ function intervalUnit(def: UnitDef): UnitDef | undefined {
 export function sub(a: Quantity, b: Quantity): Result {
   return withUnits(a, b, (aDef, bDef) => {
     if (isDimensionless(bDef.dimension)) {
-      return ok(numeric.sub(a.value, b.value), aDef);
+      return fromOutcome(numeric.subChecked(a.value, b.value), aDef);
     }
     if (isDimensionless(aDef.dimension)) {
       return bDef.affine === "absolute"
         ? mismatch(aDef, bDef)
-        : ok(numeric.sub(a.value, b.value), bDef);
+        : fromOutcome(numeric.subChecked(a.value, b.value), bDef);
     }
     if (!dimensionsEqual(aDef.dimension, bDef.dimension)) {
       return mismatch(aDef, bDef);
@@ -174,7 +182,7 @@ export function sub(a: Quantity, b: Quantity): Result {
     if (dest === undefined) {
       return mismatch(aDef, bDef);
     }
-    return ok(fromSI(numeric.sub(toSI(a.value, aDef), toSI(b.value, bDef)), dest), dest);
+    return fromOutcomeSI(numeric.subChecked(toSI(a.value, aDef), toSI(b.value, bDef)), dest);
   });
 }
 

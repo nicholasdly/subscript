@@ -43,6 +43,10 @@ test("failure yields no spans", () => {
   assert.deepEqual(subscript.spans("hello world"), []);
 });
 
+test("a scientific number is one number span", () => {
+  assert.deepEqual(subscript.spans("1e100"), [{ start: 0, end: 5, kind: "number" }]);
+});
+
 test("over-length input yields no spans", () => {
   assert.deepEqual(subscript.spans("x".repeat(257)), []);
 });

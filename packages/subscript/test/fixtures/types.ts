@@ -16,7 +16,6 @@ export type Fixture = {
         unitId: string;
         value: number;
         eps?: number;
-        checkText?: boolean;
       }
     | { ok: false; reason: Failure["kind"] };
   todo?: boolean;

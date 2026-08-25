@@ -10,7 +10,6 @@ export const accept: Fixture[] = [
       unitId: "fahrenheit",
       value: 68,
       eps: 1e-12,
-      checkText: true,
     },
   },
   {
@@ -18,12 +17,11 @@ export const accept: Fixture[] = [
     input: "(2 + 3) * 4 km in miles",
     expect: {
       ok: true,
-      text: "12.427 mi",
+      text: "12.4274 mi",
       unitId: "mile",
       value: 20 / 1.609344,
       eps: 1e-9,
     },
-    notes: "M3 may tighten significant figures.",
   },
   {
     name: "mixed-ft-in-cm",
@@ -44,7 +42,6 @@ export const accept: Fixture[] = [
       text: "1 min",
       unitId: "minute",
       value: 1,
-      checkText: true,
     },
     notes: "min is minute, not metre.",
   },
@@ -53,19 +50,19 @@ export const accept: Fixture[] = [
     input: "1 m in ft",
     expect: {
       ok: true,
-      text: "3.2808 ft",
+      text: "3.28084 ft",
       unitId: "foot",
       value: 1 / 0.3048,
       eps: 1e-9,
     },
-    notes: "m is metre, in is converter, ft is foot. Figures may change in M3.",
+    notes: "m is metre, in is converter, ft is foot.",
   },
   {
     name: "usd-in-eur",
     input: "100 usd in eur",
     expect: { ok: false, reason: "rate-unavailable" },
     todo: true,
-    notes: "M2 correctly refuses (unknown words). Assert rate-unavailable from M4.",
+    notes: "M3 correctly refuses (unknown words). Assert rate-unavailable from M4.",
   },
   {
     name: "pst-in-tokyo",
@@ -77,22 +74,22 @@ export const accept: Fixture[] = [
       value: 0,
     },
     todo: true,
-    notes: "M2 correctly refuses. text is a placeholder until M5.",
+    notes: "M3 correctly refuses. text is a placeholder until M5.",
   },
   {
     name: "bare-number",
     input: "20",
-    expect: { ok: true, text: "20", unitId: "1", value: 20, checkText: true },
+    expect: { ok: true, text: "20", unitId: "1", value: 20 },
   },
   {
     name: "two-plus-two",
     input: "2 + 2",
-    expect: { ok: true, text: "4", unitId: "1", value: 4, checkText: true },
+    expect: { ok: true, text: "4", unitId: "1", value: 4 },
   },
   {
     name: "glued-km",
     input: "2km",
-    expect: { ok: true, text: "2 km", unitId: "kilometre", value: 2, checkText: true },
+    expect: { ok: true, text: "2 km", unitId: "kilometre", value: 2 },
   },
   {
     name: "arrow-c-to-f",
@@ -103,7 +100,6 @@ export const accept: Fixture[] = [
       unitId: "fahrenheit",
       value: 68,
       eps: 1e-12,
-      checkText: true,
     },
   },
   {
@@ -115,7 +111,6 @@ export const accept: Fixture[] = [
       unitId: "fahrenheit",
       value: 68,
       eps: 1e-12,
-      checkText: true,
     },
   },
   {
@@ -126,7 +121,6 @@ export const accept: Fixture[] = [
       text: "100 m\u00b2",
       unitId: "metre-squared",
       value: 100,
-      checkText: true,
     },
   },
   {
@@ -137,7 +131,6 @@ export const accept: Fixture[] = [
       text: "2 km",
       unitId: "kilometre",
       value: 2,
-      checkText: true,
     },
   },
   {
@@ -160,7 +153,7 @@ export const accept: Fixture[] = [
     input: "1 gallon to litre",
     expect: {
       ok: true,
-      text: "3.785411784 L",
+      text: "3.78541 L",
       unitId: "litre",
       value: 3.785411784,
       eps: 1e-12,
@@ -182,7 +175,7 @@ export const accept: Fixture[] = [
     input: "1 oz to g",
     expect: {
       ok: true,
-      text: "28.349523125 g",
+      text: "28.3495 g",
       unitId: "gram",
       value: (0.45359237 / 16) * 1000,
     },
@@ -190,12 +183,12 @@ export const accept: Fixture[] = [
   {
     name: "sqrt-four",
     input: "sqrt(4)",
-    expect: { ok: true, text: "2", unitId: "1", value: 2, checkText: true },
+    expect: { ok: true, text: "2", unitId: "1", value: 2 },
   },
   {
     name: "unary-minus",
     input: "-5 + 3",
-    expect: { ok: true, text: "-2", unitId: "1", value: -2, checkText: true },
+    expect: { ok: true, text: "-2", unitId: "1", value: -2 },
   },
   {
     name: "negative-celsius",
@@ -206,8 +199,38 @@ export const accept: Fixture[] = [
       unitId: "fahrenheit",
       value: -4,
       eps: 1e-12,
-      checkText: true,
     },
     notes: "Unary minus negates the literal; an absolute temperature can be negative.",
+  },
+  {
+    name: "sci-thousand",
+    input: "1e3",
+    expect: { ok: true, text: "1k", unitId: "1", value: 1000 },
+  },
+  {
+    name: "compact-sum",
+    input: "100000 + 200000",
+    expect: { ok: true, text: "300k", unitId: "1", value: 300000 },
+  },
+  {
+    name: "near-zero-sqrt",
+    input: "sqrt(2) - 2^0.5",
+    expect: { ok: true, text: "0", unitId: "1", value: 0 },
+  },
+  {
+    name: "precision-loss-add",
+    input: "1e100 + 1 - 1e100",
+    expect: { ok: false, reason: "precision-loss" },
+  },
+  {
+    name: "glued-kelvin",
+    input: "2.5k",
+    expect: { ok: true, text: "2.5 K", unitId: "kelvin", value: 2.5 },
+    notes: "k is kelvin. Compact 2.5k is display-only and is not this input.",
+  },
+  {
+    name: "overflow-exponent",
+    input: "1e309",
+    expect: { ok: false, reason: "precision-loss" },
   },
 ];
