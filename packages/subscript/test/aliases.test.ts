@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   aliasesFor,
   UNIT_ALIASES,
+  UPPERCASE_ONLY_IDS,
   dollarCurrency,
   volumeLocale,
   type VolumeLocale,
@@ -44,6 +45,9 @@ test("non-locale aliases are unique", () => {
 test("every alias id exists in the unit table", () => {
   for (const row of UNIT_ALIASES) {
     assert.notEqual(lookupUnit(row.id), undefined, row.id);
+  }
+  for (const id of UPPERCASE_ONLY_IDS) {
+    assert.notEqual(lookupUnit(id), undefined, id);
   }
 });
 

@@ -6,7 +6,9 @@ export type ParseResult =
   | { readonly ok: true; readonly ast: Ast }
   | { readonly ok: false; readonly limit?: LimitName };
 
-const notAnExpression: ParseResult = { ok: false };
+function failedParse(): ParseResult {
+  return { ok: false };
+}
 
 type Binding = { readonly lbp: number; readonly rbp: number };
 
@@ -18,7 +20,7 @@ const BINARY: Record<BinaryOp, Binding> = {
   "^": { lbp: 30, rbp: 29 },
 };
 
-const PREFIX_BP = 40;
+const PREFIX_BP = BINARY["^"].lbp; // Exponentiation binds inside unary minus.
 const POSTFIX_UNIT_BP = 50;
 const IMPLICIT_MUL_BP = 20;
 
@@ -52,7 +54,7 @@ class Parser {
   }
 
   private failure(): ParseResult {
-    return this.limit === undefined ? notAnExpression : { ok: false, limit: this.limit };
+    return this.limit === undefined ? failedParse() : { ok: false, limit: this.limit };
   }
 
   private node<T extends Ast>(ast: T): T | undefined {
@@ -192,7 +194,7 @@ function parseTokens(tokens: readonly Token[], convertTo: string | undefined): P
         token.kind === "now",
     )
   ) {
-    return notAnExpression;
+    return failedParse();
   }
   return new Parser(tokens).parse(convertTo);
 }
@@ -257,7 +259,7 @@ function parseTimeQuery(tokens: readonly Token[]): ParseResult | undefined {
     };
   }
 
-  return notAnExpression;
+  return failedParse();
 }
 
 /**

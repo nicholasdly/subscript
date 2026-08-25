@@ -8,17 +8,7 @@ export type UnitAlias = {
 };
 
 /** ISO 4217 alpha-3 codes that are English words; lexer requires uppercase. */
-export const UPPERCASE_ONLY_IDS: ReadonlySet<string> = new Set([
-  "all",
-  "try",
-  "top",
-  "cup",
-  "cop",
-  "sos",
-  "mad",
-  "gel",
-  "bam",
-]);
+export const UPPERCASE_ONLY_IDS: ReadonlySet<string> = new Set(["try", "cop", "pen"]);
 
 const DOLLAR_BY_REGION: Readonly<Record<string, string>> = {
   ca: "cad",

@@ -2,7 +2,7 @@ import { charAt, foldChar, isLetter, isMark, skipWhitespace } from "./chars.ts";
 import { sourceIndex, type Normalized } from "./normalize.ts";
 import type { LexToken, Located, OperatorChar } from "./token.ts";
 import type { AmbiguousClock } from "./types.ts";
-import { offsetZoneId } from "./tz.ts";
+import { isValidOffset, offsetZoneId } from "./tz.ts";
 import { UPPERCASE_ONLY_IDS } from "./units/aliases.ts";
 import { matchTrie, type TrieNode, type TrieValue } from "./units/trie.ts";
 
@@ -212,16 +212,26 @@ function readHourMinutes(
     hours = Number(text.slice(from, i + 1));
     i += 1;
   }
-  if (hours > 14) {
+  if (!isValidOffset(hours, 0)) {
     return undefined;
   }
   let minutes = 0;
+  if (isDigit(text, i)) {
+    if (i - from !== 2 || !isDigit(text, i + 1) || isDigit(text, i + 2)) {
+      return undefined;
+    }
+    minutes = Number(text.slice(i, i + 2));
+    if (!isValidOffset(hours, minutes)) {
+      return undefined;
+    }
+    return { hours, minutes, end: i + 2 };
+  }
   if (text.charAt(i) === ":") {
     if (!isDigit(text, i + 1) || !isDigit(text, i + 2)) {
       return undefined;
     }
     minutes = Number(text.slice(i + 1, i + 3));
-    if (minutes !== 0 && minutes !== 30 && minutes !== 45) {
+    if (!isValidOffset(hours, minutes)) {
       return undefined;
     }
     i += 3;

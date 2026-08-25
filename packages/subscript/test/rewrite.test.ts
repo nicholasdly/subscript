@@ -63,3 +63,13 @@ test("does not swap usd before a number", () => {
   assert.equal(rewritten[0]?.kind, "unit");
   assert.equal(rewritten[1]?.kind, "number");
 });
+
+test("does not treat non-currency symbols as prefixes", () => {
+  for (const input of ["\u00b0C 20", "m\u00b2 2"]) {
+    const [only] = readings(input);
+    assert.ok(only);
+    const rewritten = rewrite(only);
+    assert.equal(rewritten[0]?.kind, "unit");
+    assert.equal(rewritten[1]?.kind, "number");
+  }
+});

@@ -14,6 +14,54 @@ When a plan in `docs/plans/` is done, add an entry at the top of the log:
 
 ## Log
 
+### 2026-08-25 — Post-M5 review: nine bug fixes and a restraint pass
+
+No plan. A full read of `packages/subscript` after M5 landed. Only package code,
+tests, and this history entry changed.
+
+**Bugs fixed**
+
+- Exponentiation now binds before unary minus: `-2^2` is `-4`, while `(-2)^2`
+  remains `4`.
+- NFC composition retains original UTF-16 offsets, so spans for decomposed input
+  such as `sa\u0303o paulo` still cover the complete source text.
+- Prefix rewriting now verifies the unit is currency. Symbols such as `°C` and
+  `m²` before a number are no longer silently reversed into valid quantities.
+- Civil offsets are bounded at `UTC±14:00`; impossible `UTC+14:30` and
+  `UTC+14:45` zones are rejected consistently by the lexer and zone lookup.
+- Compact offsets now consume their minutes: `UTC+0530` is one `UTC+5:30` token
+  instead of `UTC+5` followed by `30`.
+- `PEN`, like the other ISO codes that are English words, must be uppercase in
+  input. Lowercase `pen` no longer becomes Peruvian sol.
+- Invalid injected instants no longer reach `Date` or `Intl` and reject the
+  evaluation promise; time queries fail as `not-an-expression`.
+- Failed evaluations and parses no longer reuse a mutable singleton. Mutating
+  one JavaScript result cannot corrupt later results from the same instance.
+- Span ranking now rejects converter readings whose source expression is
+  syntactically unitless. `11 in cm` is colored as inches, matching the reading
+  that evaluates successfully.
+
+**Simplified**
+
+- Offset validity has one predicate shared by lexing and synthetic zone lookup.
+- Public `Result` and `Failure` records are readonly, matching `Quantity`,
+  `ZonedTime`, and the rest of the value model.
+- Out-of-range normalized offsets fail toward the source end instead of jumping
+  to zero. The uppercase-only currency set contains only catalog currencies.
+- The review left explicit parser, arithmetic, rate, formatting, and timezone
+  paths intact where extracting helpers would only hide invariants or add work.
+
+**Verified**
+
+- 253 tests (was 242), package typecheck and build, package lint, and editor
+  diagnostics are green.
+- Exhaustive compatible-unit round trips passed for every catalog pair and
+  representative values. Every IANA catalog zone round-tripped monthly wall
+  times through 2026.
+- Unicode offset invariants passed for composed marks, reordered marks, Hangul
+  Jamo, and astral characters. The 1,000-evaluation benchmark remains below its
+  two-second budget.
+
 ### 2026-08-25 — M5 Time zones
 
 Plan: [`docs/plans/m5-timezones.md`](./plans/m5-timezones.md)

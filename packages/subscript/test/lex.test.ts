@@ -122,14 +122,16 @@ test("1e309 is still a number token, non-finite", () => {
   }
 });
 
-test("TRY is currency and try is unknown", () => {
-  const upper = tokens("100 TRY");
-  assert.equal(upper[1]?.kind, "unit");
-  if (upper[1]?.kind === "unit") {
-    assert.equal(upper[1].unitId, "try");
+test("English-word ISO codes require capitals", () => {
+  for (const code of ["TRY", "PEN"]) {
+    const upper = tokens(`100 ${code}`);
+    assert.equal(upper[1]?.kind, "unit");
+    if (upper[1]?.kind === "unit") {
+      assert.equal(upper[1].unitId, code.toLowerCase());
+    }
+    const lower = tokens(`100 ${code.toLowerCase()}`);
+    assert.equal(lower[1]?.kind, "unknown");
   }
-  const lower = tokens("100 try");
-  assert.equal(lower[1]?.kind, "unknown");
 });
 
 test("$100 is unit then number before rewrite", () => {
@@ -182,6 +184,21 @@ test("GMT+8 is one timezone token", () => {
   assert.equal(result[0]?.kind, "timezone");
   if (result[0]?.kind === "timezone") {
     assert.equal(result[0].zoneId, "utc+0800");
+  }
+});
+
+test("UTC offsets stop at 14:00", () => {
+  assert.equal(tokens("UTC+14")[0]?.kind, "timezone");
+  assert.notEqual(tokens("UTC+14:30")[0]?.kind, "timezone");
+  assert.notEqual(tokens("UTC+1430")[0]?.kind, "timezone");
+});
+
+test("compact UTC offsets include minutes", () => {
+  const result = tokens("UTC+0530");
+  assert.equal(result.length, 1);
+  assert.equal(result[0]?.kind, "timezone");
+  if (result[0]?.kind === "timezone") {
+    assert.equal(result[0].zoneId, "utc+0530");
   }
 });
 

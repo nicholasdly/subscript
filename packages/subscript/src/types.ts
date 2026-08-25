@@ -60,15 +60,24 @@ export type Span = {
 };
 
 export type Failure =
-  | { kind: "not-an-expression" }
-  | { kind: "dimension-mismatch"; from: Unit; to: Unit }
-  | { kind: "unknown-unit"; token: string }
-  | { kind: "ambiguous"; token: string; candidates: readonly Candidate[] }
-  | { kind: "rate-unavailable"; currency: string }
-  | { kind: "rate-pending"; currency: string }
-  | { kind: "precision-loss" }
-  | { kind: "limit-exceeded"; limit: LimitName };
+  | { readonly kind: "not-an-expression" }
+  | { readonly kind: "dimension-mismatch"; readonly from: Unit; readonly to: Unit }
+  | { readonly kind: "unknown-unit"; readonly token: string }
+  | {
+      readonly kind: "ambiguous";
+      readonly token: string;
+      readonly candidates: readonly Candidate[];
+    }
+  | { readonly kind: "rate-unavailable"; readonly currency: string }
+  | { readonly kind: "rate-pending"; readonly currency: string }
+  | { readonly kind: "precision-loss" }
+  | { readonly kind: "limit-exceeded"; readonly limit: LimitName };
 
 export type Result =
-  | { ok: true; value: EvalValue; text: string; alternates?: readonly Alternate[] }
-  | { ok: false; reason: Failure };
+  | {
+      readonly ok: true;
+      readonly value: EvalValue;
+      readonly text: string;
+      readonly alternates?: readonly Alternate[];
+    }
+  | { readonly ok: false; readonly reason: Failure };

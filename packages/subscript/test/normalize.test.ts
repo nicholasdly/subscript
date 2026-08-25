@@ -21,12 +21,19 @@ test("maps compatibility celsius and fahrenheit", () => {
 test("the entry past the end is the length of the source", () => {
   const result = normalize("20 c");
   assert.equal(sourceIndex(result, result.text.length), 4);
+  assert.equal(sourceIndex(result, result.text.length + 1), 4);
 });
 
 test("keeps offsets correct across astral characters", () => {
   const result = normalize("\u{1f600}m");
   assert.equal(result.text, "\u{1f600}m");
   assert.equal(sourceIndex(result, 2), 2);
+});
+
+test("keeps original offsets when NFC composes characters", () => {
+  const result = normalize("sa\u0303o");
+  assert.equal(result.text, "s\u00e3o");
+  assert.deepEqual(result.starts, [0, 1, 3, 4]);
 });
 
 test("does not fold case or collapse spaces", () => {

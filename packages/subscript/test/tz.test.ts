@@ -80,6 +80,26 @@ test("invalid IANA does not throw from instant", () => {
   assert.equal(engine.instant(local, "Not/AZone"), undefined);
 });
 
+test("synthetic offsets stop at 14:00", () => {
+  assert.ok(lookupZone("utc+1400"));
+  assert.equal(lookupZone("utc+1430"), undefined);
+});
+
+test("invalid epochs do not reach Intl", () => {
+  assert.equal(
+    toWall({
+      kind: "zoned-time",
+      epochMilliseconds: NaN,
+      timeZone: "asia-tokyo",
+      label: "JST",
+      sourceYear: 2026,
+      sourceMonth: 1,
+      sourceDay: 1,
+    }),
+    undefined,
+  );
+});
+
 test("toZonedTime then toWall round-trips an offset zone", () => {
   const zone = lookupZone("pst");
   assert.ok(zone);

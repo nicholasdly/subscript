@@ -31,6 +31,29 @@ test("createSubscript().evaluate is stable for a fixed now", async () => {
   }
 });
 
+test("invalid injected instants fail without rejecting", async () => {
+  for (const epochMilliseconds of [NaN, Infinity, 8_640_000_000_000_001]) {
+    const subscript = createSubscript({ now: () => ({ epochMilliseconds }) });
+    for (const input of ["3pm PST", "now in Tokyo"]) {
+      const result = await subscript.evaluate(input);
+      assert.deepEqual(result, { ok: false, reason: { kind: "not-an-expression" } });
+    }
+  }
+});
+
+test("failure results do not share mutable state", async () => {
+  const subscript = createSubscript();
+  const first = await subscript.evaluate("hello");
+  assert.equal(first.ok, false);
+  if (!first.ok) {
+    (first.reason as { kind: string }).kind = "precision-loss";
+  }
+  assert.deepEqual(await subscript.evaluate("hello"), {
+    ok: false,
+    reason: { kind: "not-an-expression" },
+  });
+});
+
 test("spans colors 20 c to f", () => {
   const subscript = createSubscript();
   assert.deepEqual(subscript.spans("20 c to f"), [

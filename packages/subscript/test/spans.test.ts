@@ -31,6 +31,14 @@ test("the + inserted between feet and inches is not coloured", () => {
   ]);
 });
 
+test("11 in cm colors in as the inch unit used by evaluation", () => {
+  assert.deepEqual(subscript.spans("11 in cm"), [
+    { start: 0, end: 2, kind: "number" },
+    { start: 3, end: 5, kind: "unit" },
+    { start: 6, end: 8, kind: "unit" },
+  ]);
+});
+
 test("parentheses and sqrt colour as punctuation and operator", () => {
   assert.deepEqual(subscript.spans("sqrt(4)"), [
     { start: 0, end: 4, kind: "operator" },

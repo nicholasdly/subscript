@@ -1,5 +1,7 @@
 import { isAllLetters } from "./chars.ts";
 import type { Token } from "./token.ts";
+import { isCurrency } from "./units/kinds.ts";
+import { lookupUnit } from "./units/lookup.ts";
 
 /**
  * The inserted `+` stands for no source text, so it spans nothing and `spans()`
@@ -10,7 +12,11 @@ function implicitPlus(after: Token): Token {
 }
 
 function isPrefixCurrency(token: Token): boolean {
-  return token.kind === "unit" && !isAllLetters(token.raw);
+  if (token.kind !== "unit" || isAllLetters(token.raw)) {
+    return false;
+  }
+  const unit = lookupUnit(token.unitId);
+  return unit !== undefined && isCurrency(unit);
 }
 
 /** `5 ft 11 in` means `5 ft + 11 in`. `$100` is prefix-swapped to `100 $`. */

@@ -46,3 +46,15 @@ test("11 in cm converts inches to centimetres", async () => {
     assert.ok(result.value.value > 20);
   }
 });
+
+test("exponentiation binds before unary minus", async () => {
+  const negative = await subscript.evaluate("-2^2");
+  const grouped = await subscript.evaluate("(-2)^2");
+  assert.equal(negative.ok && !isZonedTime(negative.value) ? negative.value.value : undefined, -4);
+  assert.equal(grouped.ok && !isZonedTime(grouped.value) ? grouped.value.value : undefined, 4);
+});
+
+test("compact UTC offsets retain their minutes", async () => {
+  const result = await subscript.evaluate("3pm UTC+0530");
+  assert.equal(result.ok ? result.text : undefined, "3:00 PM UTC+5:30");
+});

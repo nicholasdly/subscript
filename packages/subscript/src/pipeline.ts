@@ -21,7 +21,7 @@ import {
   type Span,
   type SpanKind,
 } from "./types.ts";
-import { lookupZone, retarget, toZonedTime, zoneWall, type TzEngine } from "./tz.ts";
+import { isValidEpoch, lookupZone, retarget, toZonedTime, zoneWall, type TzEngine } from "./tz.ts";
 import { isCurrency } from "./units/kinds.ts";
 import { lookupUnit } from "./units/lookup.ts";
 import type { TrieNode } from "./units/trie.ts";
@@ -31,8 +31,13 @@ export type PipelineOutput = {
   readonly spans: readonly Span[];
 };
 
-const notAnExpression: Result = { ok: false, reason: { kind: "not-an-expression" } };
-const nothing: PipelineOutput = { result: notAnExpression, spans: [] };
+function notAnExpression(): Result {
+  return { ok: false, reason: { kind: "not-an-expression" } };
+}
+
+function nothing(): PipelineOutput {
+  return { result: notAnExpression(), spans: [] };
+}
 
 function limitExceeded(limit: LimitName): Result {
   return { ok: false, reason: { kind: "limit-exceeded", limit } };
@@ -101,14 +106,14 @@ async function evaluateAst(ast: Ast, rates: QuoteSession, ctx: EvalCtx): Promise
       return quantity(ast.value, ast.unitId);
     case "clock":
     case "now":
-      return notAnExpression;
+      return notAnExpression();
     case "zoned": {
-      if (ast.inner.kind !== "clock") {
-        return notAnExpression;
+      if (ast.inner.kind !== "clock" || !isValidEpoch(ctx.instant.epochMilliseconds)) {
+        return notAnExpression();
       }
       const zone = lookupZone(ast.zoneId);
       if (zone === undefined) {
-        return notAnExpression;
+        return notAnExpression();
       }
       const today = zoneWall(ctx.instant.epochMilliseconds, zone, ctx.engine);
       const local = {
@@ -120,15 +125,18 @@ async function evaluateAst(ast: Ast, rates: QuoteSession, ctx: EvalCtx): Promise
         second: ast.inner.second,
       };
       const zoned = toZonedTime(local, zone, ctx.engine);
-      return zoned === undefined ? notAnExpression : okZoned(zoned);
+      return zoned === undefined ? notAnExpression() : okZoned(zoned);
     }
     case "convert-zone": {
       const toZone = lookupZone(ast.toZoneId);
       if (toZone === undefined) {
-        return notAnExpression;
+        return notAnExpression();
       }
       if (ast.expr.kind === "now") {
         const epoch = ctx.instant.epochMilliseconds;
+        if (!isValidEpoch(epoch)) {
+          return notAnExpression();
+        }
         const utc = new Date(epoch);
         return okZoned({
           kind: "zoned-time",
@@ -145,7 +153,7 @@ async function evaluateAst(ast: Ast, rates: QuoteSession, ctx: EvalCtx): Promise
         return inner;
       }
       if (!isZonedTime(inner.value)) {
-        return notAnExpression;
+        return notAnExpression();
       }
       return okZoned(retarget(inner.value, toZone));
     }
@@ -155,7 +163,7 @@ async function evaluateAst(ast: Ast, rates: QuoteSession, ctx: EvalCtx): Promise
         return inner;
       }
       if (isZonedTime(inner.value)) {
-        return notAnExpression;
+        return notAnExpression();
       }
       return quantity(-inner.value.value, inner.value.unit.id);
     }
@@ -165,7 +173,7 @@ async function evaluateAst(ast: Ast, rates: QuoteSession, ctx: EvalCtx): Promise
         return inner;
       }
       if (isZonedTime(inner.value)) {
-        return notAnExpression;
+        return notAnExpression();
       }
       return sqrt(inner.value);
     }
@@ -175,7 +183,7 @@ async function evaluateAst(ast: Ast, rates: QuoteSession, ctx: EvalCtx): Promise
         return inner;
       }
       if (isZonedTime(inner.value)) {
-        return notAnExpression;
+        return notAnExpression();
       }
       return convert(inner.value, ast.toId, rates);
     }
@@ -189,7 +197,7 @@ async function evaluateAst(ast: Ast, rates: QuoteSession, ctx: EvalCtx): Promise
         return right;
       }
       if (isZonedTime(left.value) || isZonedTime(right.value)) {
-        return notAnExpression;
+        return notAnExpression();
       }
       switch (ast.op) {
         case "+":
@@ -265,7 +273,7 @@ export async function runPipeline(
 
   const readings = enumerateReadings(lex(normalize(input), trie, ambiguousClock));
   if (readings === undefined) {
-    return nothing;
+    return nothing();
   }
 
   const rates = newSession(fetchFn);
@@ -285,7 +293,7 @@ export async function runPipeline(
   const winner =
     succeeded.find((reading) => readsInAsConverter(reading.tokens)) ?? succeeded[0] ?? evaluated[0];
   if (winner === undefined) {
-    return nothing;
+    return nothing();
   }
   if (!winner.result.ok) {
     return { result: winner.result, spans: [] };
@@ -297,6 +305,20 @@ export async function runPipeline(
     result: alternates.length > 0 ? { ...result, alternates } : result,
     spans: spansFor(winner.tokens),
   };
+}
+
+function isUnitless(ast: Ast): boolean {
+  switch (ast.kind) {
+    case "number":
+      return true;
+    case "unary":
+    case "sqrt":
+      return isUnitless(ast.inner);
+    case "binary":
+      return isUnitless(ast.left) && isUnitless(ast.right);
+    default:
+      return false;
+  }
 }
 
 /** Parse and rank without evaluating, so coloring never quotes Frankfurter. */
@@ -314,15 +336,21 @@ export function spansForInput(
     return [];
   }
 
-  const parsed: { tokens: readonly Token[] }[] = [];
+  const parsed: { ast: Ast; tokens: readonly Token[] }[] = [];
   for (const reading of readings) {
     const tokens = rewrite(reading);
     const result = parse(tokens);
     if (result.ok) {
-      parsed.push({ tokens });
+      parsed.push({ ast: result.ast, tokens });
     }
   }
 
-  const winner = parsed.find((reading) => readsInAsConverter(reading.tokens)) ?? parsed[0];
+  const viableConverter = parsed.find(
+    (reading) =>
+      readsInAsConverter(reading.tokens) &&
+      !(reading.ast.kind === "convert" && isUnitless(reading.ast.expr)),
+  );
+  const winner =
+    viableConverter ?? parsed.find((reading) => !readsInAsConverter(reading.tokens)) ?? parsed[0];
   return winner === undefined ? [] : spansFor(winner.tokens);
 }

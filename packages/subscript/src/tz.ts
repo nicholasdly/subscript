@@ -17,6 +17,7 @@ export type TzEngine = {
 
 const HOUR_MS = 3_600_000;
 const MINUTE_MS = 60_000;
+const MAX_EPOCH_MS = 8_640_000_000_000_000;
 const UTC_ID = /^utc([+-])(\d{2})(\d{2})$/;
 
 function pad2(n: number): string {
@@ -42,6 +43,21 @@ export function offsetZoneId(offsetMinutes: number): string {
   return `utc${sign}${pad2(hours)}${pad2(minutes)}`;
 }
 
+export function isValidOffset(hours: number, minutes: number): boolean {
+  return (
+    Number.isInteger(hours) &&
+    Number.isInteger(minutes) &&
+    hours >= 0 &&
+    hours <= 14 &&
+    (minutes === 0 || minutes === 30 || minutes === 45) &&
+    (hours < 14 || minutes === 0)
+  );
+}
+
+export function isValidEpoch(epochMs: number): boolean {
+  return Number.isFinite(epochMs) && Math.abs(epochMs) <= MAX_EPOCH_MS;
+}
+
 function syntheticOffset(id: string): ZoneDef | undefined {
   const match = UTC_ID.exec(id);
   if (match === null) {
@@ -49,7 +65,7 @@ function syntheticOffset(id: string): ZoneDef | undefined {
   }
   const hours = Number(match[2]);
   const minutes = Number(match[3]);
-  if (hours > 14 || (minutes !== 0 && minutes !== 30 && minutes !== 45)) {
+  if (!isValidOffset(hours, minutes)) {
     return undefined;
   }
   const offsetMinutes = (hours * 60 + minutes) * (match[1] === "-" ? -1 : 1);
@@ -231,7 +247,7 @@ export function toZonedTime(
     zone.kind === "offset"
       ? offsetInstant(local, zone.offsetMinutes)
       : engine.instant(local, zone.iana);
-  if (epoch === undefined) {
+  if (epoch === undefined || !isValidEpoch(epoch)) {
     return undefined;
   }
   return {
@@ -246,6 +262,9 @@ export function toZonedTime(
 }
 
 export function toWall(zoned: ZonedTime, engine: TzEngine = defaultEngine): Wall | undefined {
+  if (!isValidEpoch(zoned.epochMilliseconds)) {
+    return undefined;
+  }
   const zone = lookupZone(zoned.timeZone);
   if (zone === undefined) {
     return undefined;
