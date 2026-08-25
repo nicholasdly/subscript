@@ -1,21 +1,27 @@
 {
   "name": "@repo/subscript",
+  "version": "0.0.0",
+  "private": true,
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "exports": {
     ".": {
-      "types": "./src/parse.ts",
-      "default": "./dist/parse.ts"
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
     }
   },
   "scripts": {
     "dev": "tsc --watch",
-    "typecheck": "tsc --noEmit",
-    "build": "tsc"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "build": "tsc",
+    "test": "node --test test/*.test.ts"
   },
   "dependencies": {},
   "devDependencies": {
     "@repo/typescript-config": "*",
-    "@types/node": "^20",
-    "typescript": "latest"
+    "@types/node": "^24",
+    "typescript": "7.0.2"
   }
 }

@@ -1,0 +1,71 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+
+import { createSubscript, type Result } from "../src/index.ts";
+import { accept } from "./fixtures/accept.ts";
+import { reject } from "./fixtures/reject.ts";
+import { REFERENCE_INSTANT, type Fixture } from "./fixtures/types.ts";
+
+const FAILURE_KINDS = new Set([
+  "not-an-expression",
+  "dimension-mismatch",
+  "unknown-unit",
+  "ambiguous",
+  "rate-unavailable",
+  "rate-pending",
+  "precision-loss",
+  "limit-exceeded",
+]);
+
+const fixtures: Fixture[] = [...accept, ...reject];
+
+const names = new Set<string>();
+for (const fixture of fixtures) {
+  if (names.has(fixture.name)) {
+    throw new Error(`Duplicate fixture name: ${fixture.name}`);
+  }
+  names.add(fixture.name);
+}
+
+function assertWellFormed(result: Result): void {
+  assert.equal(typeof result, "object");
+  assert.notEqual(result, null);
+  assert.equal(typeof result.ok, "boolean");
+  if (result.ok) {
+    assert.equal(typeof result.text, "string");
+    assert.equal(typeof result.value, "object");
+  } else {
+    assert.equal(typeof result.reason, "object");
+    assert.ok(FAILURE_KINDS.has(result.reason.kind), result.reason.kind);
+  }
+}
+
+function assertExpect(result: Result, expect: Fixture["expect"]): void {
+  if (expect.ok) {
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.equal(result.text, expect.text);
+    }
+    return;
+  }
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.equal(result.reason.kind, expect.reason);
+  }
+}
+
+for (const fixture of fixtures) {
+  test(fixture.name, (t) => {
+    const subscript = createSubscript({
+      locale: fixture.locale ?? "en-US",
+      now: () => fixture.now ?? REFERENCE_INSTANT,
+    });
+    const result = subscript.evaluate(fixture.input);
+    assertWellFormed(result);
+    if (fixture.todo) {
+      t.todo();
+      return;
+    }
+    assertExpect(result, fixture.expect);
+  });
+}
