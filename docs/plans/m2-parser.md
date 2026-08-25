@@ -31,9 +31,9 @@ is a minute and `1 m in ft` is metres-to-feet; every reject fixture is still
 | NL fixtures   | reject cases assert; accept cases are `todo: true`                                             |
 | `api.test.ts` | asserts every seed input, including future accepts, is `not-an-expression`                     |
 | Runtime deps  | zero (keep it that way)                                                                        |
-| Provenance    | M0 and M1 logged                                                                               |
+| History       | M0 and M1 logged                                                                               |
 
-Treat as given, from [`docs/provenance.md`](../provenance.md):
+Treat as given, from [`docs/history.md`](../history.md):
 
 - Layer 1 is a free `evaluate(input)`; configure via `createSubscript`.
 - Tests inject `now`; they never read the ambient clock.
@@ -773,7 +773,7 @@ Each step leaves `npm test` and `npm run typecheck` green.
 10. `spans()`. `parse-depth` / `node-count`.
 11. Fixture rows §6.2–6.3. Fuzz. Bench.
 12. `internals.ts` + package export. README snippet.
-13. Append the M2 entry to `docs/provenance.md`.
+13. Append the M2 entry to `docs/history.md`.
 
 No LICENSE, no package rename, no currency, no timezone, no `Intl`.
 
@@ -796,7 +796,7 @@ No LICENSE, no package rename, no currency, no timezone, no `Intl`.
 - Input of length 257 is `limit-exceeded` / `input-length`.
 - Fuzz: 1000 seeded strings, no throw.
 - Zero runtime dependencies; no `eval` / `new Function` in `packages/subscript/src`.
-- `docs/provenance.md` has an M2 log entry (aliases policy, `in` ranking, locale gallon,
+- `docs/history.md` has an M2 log entry (aliases policy, `in` ranking, locale gallon,
   `oz` is mass, `text` still stub).
 
 ---
@@ -831,5 +831,5 @@ If it is not in §8, it is not M2.
 - Compact notation is a formatter option, not a lexer of `k` / `M`.
 - `spans` already distinguishes number/unit/converter; formatting must not require new
   token kinds.
-- After M3 ships, append a provenance entry. Do not reverse strict consumption, “no
+- After M3 ships, append a history entry. Do not reverse strict consumption, “no
   offset on `Quantity`”, “`oz` is mass”, or the `in` ranking table.

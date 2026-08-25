@@ -1,4 +1,4 @@
-# Provenance
+# History
 
 Running history of implementation plans. Destination: `docs/plan.md`. Steps: `docs/plans/`.
 

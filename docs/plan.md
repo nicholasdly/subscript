@@ -327,7 +327,7 @@ Cheap, and everything else depends on it.
   `.ts` path in a build output and will not resolve. Also decide the published name now and check
   npm availability — `@repo/subscript` is a workspace-internal name and `goal.md` intends to publish
   as `subscript`.
-- Add `LICENSE` (MIT) and a `docs/provenance.md` stub, so per-entry data sourcing has a home from
+- Add `LICENSE` (MIT) and a `docs/history.md` stub, so per-entry data sourcing has a home from
   the first unit we add (§1.4, §11).
 
 **Exit:** `npm test` runs, the corpus harness executes both corpora, the API shape is committed.
@@ -435,7 +435,7 @@ the other way: `mcp-gnu-units` vendored the file and became GPL itself. Reformat
 it does not help.
 
 Mitigation: cite the primary source on every data entry from the first commit, never copy a
-compilation, and keep `docs/provenance.md` current. The `§16` license questions — CLDR, GeoNames,
+compilation, and keep `docs/history.md` current. The `§16` license questions — CLDR, GeoNames,
 IATA, ISO 4217, UDUNITS — need answers before those datasets are touched, not after.
 
 ### 5.3 Every ambiguity has no correct answer

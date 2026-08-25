@@ -5,7 +5,7 @@ _why_. This one is _what_, _where_, and _in what order_.
 
 M0 is cheap and everything after it depends on it: a test runner, table-driven fixtures, a
 reviewable public API that does not yet compute anything, a package that actually resolves, and a
-provenance log for work that will span many implementation plans. No units, no lexer, no parser.
+history log for work that will span many implementation plans. No units, no lexer, no parser.
 
 **Exit:** `npm test` is green, the fixtures run, and `evaluate("20 c to f")` returns
 `{ ok: false, reason: { kind: "not-an-expression" } }` through a committed, typed API.
@@ -22,7 +22,7 @@ provenance log for work that will span many implementation plans. No units, no l
 | `exports.default` | `./dist/parse.ts` — a `.ts` path under `dist/`, will not resolve   |
 | `exports.types`   | `./src/parse.ts`                                                   |
 | Consumers         | `apps/web` depends on `@repo/subscript` and does not import it yet |
-| Provenance doc    | missing                                                            |
+| History doc       | missing                                                            |
 | Runtime deps      | zero (keep it that way)                                            |
 | Node              | `>=24` (native type stripping, `node:test`)                        |
 
@@ -90,7 +90,7 @@ No `Temporal` in M0.
 ## 2. Target layout
 
 ```
-docs/provenance.md
+docs/history.md
 
 packages/subscript/
   package.json
@@ -369,9 +369,9 @@ Add `tsconfig.test.json` that extends it with `"noEmit": true`, `"rootDir": "."`
 
 ---
 
-## 6. Provenance
+## 6. History
 
-`docs/plan.md` is the destination. `docs/plans/` are the steps. `docs/provenance.md` is the trail:
+`docs/plan.md` is the destination. `docs/plans/` are the steps. `docs/history.md` is the trail:
 what we actually did, in order, so later plans can see which decisions already landed and which
 were reversed.
 
@@ -388,7 +388,7 @@ M0 creates the file with a short how-to and an empty log. The M0 entry itself is
 implementation finishes, not in this planning doc.
 
 ```markdown
-# Provenance
+# History
 
 Running history of implementation plans. Destination: `docs/plan.md`. Steps: `docs/plans/`.
 
@@ -413,7 +413,7 @@ _Nothing implemented yet._
 
 Each step leaves `npm test` (once it exists) and `npm run typecheck` green.
 
-1. Add `docs/provenance.md` (stub + empty log).
+1. Add `docs/history.md` (stub + empty log).
 2. Fix `package.json` exports, delete `parse.ts`, add empty `src/index.ts`.
 3. Types and stub: `types.ts`, `create.ts`, `evaluate.ts`, barrel. Typecheck passes.
 4. Wire the test runner (root script, package script, `turbo.json`). `api.test.ts`: never throws;
@@ -421,7 +421,7 @@ Each step leaves `npm test` (once it exists) and `npm run typecheck` green.
 5. `fixtures.test.ts` + `accept.ts` / `reject.ts` with the seed rows. Rejects assert; accepts are
    todos; nothing throws.
 6. `tsconfig.test.json`.
-7. Append the M0 entry to `docs/provenance.md`.
+7. Append the M0 entry to `docs/history.md`.
 
 No UI work, no README rewrite, no CI, no publish prep.
 
@@ -438,7 +438,7 @@ No UI work, no README rewrite, no CI, no publish prep.
 - `npm run build --filter @repo/subscript` emits `dist/index.js` (and `.d.ts`), not tests.
   Importing it and calling `evaluate("1+1")` returns `not-an-expression`.
 - `exports.default` is not a `.ts` path.
-- `docs/provenance.md` exists and has an M0 log entry.
+- `docs/history.md` exists and has an M0 log entry.
 
 ---
 
@@ -463,7 +463,7 @@ If it is not in §7, it is not M0.
 - Import `Quantity` / `Unit` / `Result` / `Failure` from `@repo/subscript` and fill in the hole.
 - Leave the NL fixtures alone. M1 is programmatic construction only: accept cases stay todos,
   reject cases stay red-if-parsed.
-- After M1 ships, append a provenance entry (including sources for any unit data).
+- After M1 ships, append a history entry (including sources for any unit data).
 
 That last point is why M0 exists: M1 can build an evaluator and the NL surface still refuses
 everything until M2.

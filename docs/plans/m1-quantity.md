@@ -26,9 +26,9 @@ temperature distinction; `evaluate("20 c to f")` is still
 | NL fixtures  | reject cases assert; accept cases are `todo: true`                          |
 | Tests inject | `now`; they never read the ambient clock                                    |
 | Runtime deps | zero (keep it that way)                                                     |
-| Provenance   | M0 logged; unit-data citations have nowhere to live until this plan ships   |
+| History      | M0 logged; unit-data citations have nowhere to live until this plan ships   |
 
-Treat as given, from [`docs/provenance.md`](../provenance.md): layer 1 is a free `evaluate`;
+Treat as given, from [`docs/history.md`](../history.md): layer 1 is a free `evaluate`;
 configure via `createSubscript`; `Quantity` grows additively from `value` + `unit`.
 
 ---
@@ -447,7 +447,7 @@ That is the whole table. No energy, no pressure, no bytes, no data-rate, no `cup
 - Exactly the `absolute` / `difference` pairs above; no other affine units.
 - `dimension` matches the section (do not mark litre as length).
 
-When implementation finishes, the M1 provenance entry lists the sources used — not a dump of
+When implementation finishes, the M1 history entry lists the sources used — not a dump of
 every factor.
 
 ---
@@ -525,7 +525,7 @@ Each step leaves `npm test` and `npm run typecheck` green.
 6. `add` / `sub` (larger-unit-wins, assimilation, affine table).
 7. `mul` / `div` / `sqrt` (named-product rule, `kg × L` fails).
 8. Export from `index.ts`. `api.test.ts` still passes unchanged.
-9. Append the M1 entry to `docs/provenance.md` (what landed, affine decision, sources cited,
+9. Append the M1 entry to `docs/history.md` (what landed, affine decision, sources cited,
    what stayed deferred).
 
 No UI, no README, no lexer, no `apps/web`, no LICENSE, no package rename.
@@ -545,7 +545,7 @@ No UI, no README, no lexer, no `apps/web`, no LICENSE, no package rename.
 - Every table row has a citation.
 - Public `Quantity` still has no `offset` field.
 - Zero runtime dependencies.
-- `docs/provenance.md` has an M1 log entry naming NIST / SI / 1959 sources.
+- `docs/history.md` has an M1 log entry naming NIST / SI / 1959 sources.
 
 ---
 
@@ -581,5 +581,5 @@ If it is not in §7, it is not M1.
   work if the grammar needs it).
 - `1 min` vs `1 m in ft` is lexing. The table already has both `minute` and `metre`.
 - After M2 ships, drop `todo` on the accept rows that now parse; do not invent a milestone gate.
-- Append a provenance entry. Do not reverse “strict full consumption” or “no offset on
+- Append a history entry. Do not reverse “strict full consumption” or “no offset on
   `Quantity`”.
