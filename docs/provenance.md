@@ -14,6 +14,30 @@ When a plan in `docs/plans/` is done, add an entry at the top of the log:
 
 ## Log
 
+### 2026-08-25 — M2 Lexer, rewrite, parser
+
+Plan: [`docs/plans/m2-parser.md`](./plans/m2-parser.md)
+
+**What landed**
+
+- Pipeline: normalize → lex → rewrite → Pratt parse → evaluate via `quantity` / `convert` / `add` / …
+- Alias trie (leftmost-longest) with locale `gallon` / `fl oz`; `in` is converter vs inch.
+- `evaluate` and `spans` are wired. Input caps: 256 / depth 32 / 64 AST nodes.
+- `text` is still the M1 stub formatter. `apps/web` remains untouched.
+
+**Treat as given**
+
+- Strict full-input consumption. Leftover prose is `not-an-expression`.
+- `in` ranks as converter when that reading evaluates; inch is the fallback (mixed `ft`/`in`).
+- `oz` is avoirdupois mass. Fluid ounce is a different phrase. `en-GB` is imperial gallon / fl oz; every other locale is US.
+- Canonical ids stay SI spellings. The parser produces them from aliases.
+- `spans()` colors the winning parse; failures return `[]`.
+- Pipeline stages are `@repo/subscript/internals`, not semver.
+
+**Deferred**
+
+- `Intl` formatting, currency, time zones, comment-word tolerance, inverted conversion, `apps/web`, LICENSE.
+
 ### 2026-08-25 — M1 Quantity, dimensions, affine units
 
 Plan: [`docs/plans/m1-quantity.md`](./plans/m1-quantity.md)

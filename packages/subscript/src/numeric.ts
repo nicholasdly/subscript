@@ -21,3 +21,7 @@ export function div(a: number, b: number): number {
 export function sqrt(value: number): number {
   return Math.sqrt(value);
 }
+
+export function pow(base: number, exp: number): number {
+  return base ** exp;
+}

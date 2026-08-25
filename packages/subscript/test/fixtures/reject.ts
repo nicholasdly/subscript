@@ -51,4 +51,24 @@ export const reject: Fixture[] = [
     input: "how many ounces in a cup of coffee near me",
     expect: { ok: false, reason: "not-an-expression" },
   },
+  {
+    name: "incomplete-to",
+    input: "20 c to",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
+  {
+    name: "inverted",
+    input: "km in m",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
+  {
+    name: "bare-two-units",
+    input: "km m",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
+  {
+    name: "comment-for",
+    input: "10 m for scale",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
 ];

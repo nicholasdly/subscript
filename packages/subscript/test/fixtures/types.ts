@@ -9,7 +9,16 @@ export type Fixture = {
   input: string;
   locale?: string;
   now?: Instant;
-  expect: { ok: true; text: string } | { ok: false; reason: Failure["kind"] };
+  expect:
+    | {
+        ok: true;
+        text: string;
+        unitId: string;
+        value: number;
+        eps?: number;
+        checkText?: boolean;
+      }
+    | { ok: false; reason: Failure["kind"] };
   todo?: boolean;
   notes?: string;
 };

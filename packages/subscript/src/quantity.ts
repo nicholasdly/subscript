@@ -8,6 +8,7 @@ import {
   type Dimension,
 } from "./dimension.ts";
 import * as numeric from "./numeric.ts";
+import { formatQuantity } from "./format.ts";
 import type { Quantity, Result, Unit } from "./types.ts";
 import type { AffineKind, UnitDef } from "./units/kinds.ts";
 import { lookupUnit, toPublic, unitsMatching } from "./units/lookup.ts";
@@ -27,19 +28,12 @@ function mismatch(from: Unit, to: Unit): Result {
   return { ok: false, reason: { kind: "dimension-mismatch", from, to } };
 }
 
-function formatStub(qty: Quantity): string {
-  if (qty.unit.symbol === "") {
-    return String(qty.value);
-  }
-  return `${qty.value} ${qty.unit.symbol}`;
-}
-
 function ok(value: number, def: UnitDef): Result {
   if (!numeric.isFiniteNumber(value)) {
     return precisionLoss();
   }
   const quantityValue: Quantity = { value, unit: toPublic(def) };
-  return { ok: true, value: quantityValue, text: formatStub(quantityValue) };
+  return { ok: true, value: quantityValue, text: formatQuantity(quantityValue) };
 }
 
 function resolve(qty: Quantity): UnitDef | Result {

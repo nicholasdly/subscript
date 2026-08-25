@@ -343,7 +343,8 @@ Do not bump a real semver. Leave version as it is, or `0.0.0` if none exists.
 
 ### 5.2 `apps/web`
 
-Do not change the dependency. Do not wire the demo. That is M2.
+Do not change the dependency or wire the demo. Application work is planned separately
+from the library milestones.
 
 ### 5.3 `turbo.json`
 
@@ -448,7 +449,7 @@ No UI work, no README rewrite, no CI, no publish prep.
 - `Intl` formatting (M3)
 - `RateProvider` behavior, network (M4)
 - Time zones, `Temporal` (M5)
-- Wiring `apps/web` (M2)
+- Wiring `apps/web` (separate application work)
 - Fuzzing, differential testing, executable README (from M2)
 - Comment-word tolerance, historical rates, non-English input (not v1)
 - Library README, CI, publishing, renaming the package, adding a LICENSE

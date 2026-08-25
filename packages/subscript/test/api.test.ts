@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { createSubscript, evaluate, type Result } from "../src/index.ts";
+import { createSubscript, evaluate } from "../src/index.ts";
 import { accept } from "./fixtures/accept.ts";
 import { reject } from "./fixtures/reject.ts";
 
@@ -17,16 +17,6 @@ test("evaluate never throws on seed inputs", () => {
   }
 });
 
-test("evaluate currently rejects every seed input as not-an-expression", () => {
-  for (const input of seedInputs) {
-    const result = evaluate(input);
-    assert.equal(result.ok, false);
-    if (!result.ok) {
-      assert.equal(result.reason.kind, "not-an-expression");
-    }
-  }
-});
-
 test("createSubscript().evaluate matches evaluate", () => {
   const subscript = createSubscript();
   for (const input of seedInputs) {
@@ -34,9 +24,12 @@ test("createSubscript().evaluate matches evaluate", () => {
   }
 });
 
-test("spans returns an empty list", () => {
+test("spans colors 20 c to f", () => {
   const subscript = createSubscript();
-  const result: Result = subscript.evaluate("20 c to f");
-  assert.equal(result.ok, false);
-  assert.deepEqual(subscript.spans("20 c to f"), []);
+  assert.deepEqual(subscript.spans("20 c to f"), [
+    { start: 0, end: 2, kind: "number" },
+    { start: 3, end: 4, kind: "unit" },
+    { start: 5, end: 7, kind: "converter" },
+    { start: 8, end: 9, kind: "unit" },
+  ]);
 });

@@ -66,8 +66,9 @@ Matches §15. Units share a single evaluator with currency (a currency is a unit
 at runtime, §8.1), so currency is mostly operational work on top of a finished core. Time zones
 reuse almost none of it and carry the largest data and maintenance tail (§9), so they go last.
 
-`apps/web` therefore demos a units-and-arithmetic calculator first. A demo that does one domain
-convincingly is a better artifact than one that does four badly.
+When application work begins, `apps/web` should demo a units-and-arithmetic calculator first.
+A demo that does one domain convincingly is a better artifact than one that does four badly.
+Application integration is planned separately from the package milestones below.
 
 ### 1.4 Hand-authored unit data, cited per entry; `subscript` stays MIT
 
@@ -357,7 +358,7 @@ Where natural language enters, and where the trigger philosophy of §1.1 becomes
   ever.
 
 **Exit:** `20 c to f`, `5 ft 11 in cm`, and `(2 + 3) * 4 km in miles` all evaluate. The negative
-corpus passes, including the `m` / `min` / `in` cases. First wiring into `apps/web`.
+corpus passes, including the `m` / `min` / `in` cases.
 
 ### M3 — Formatting
 

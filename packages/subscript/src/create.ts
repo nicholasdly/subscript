@@ -1,9 +1,6 @@
+import { runPipeline } from "./pipeline.ts";
 import type { Instant, NowFn, RateProvider, Result, Span } from "./types.ts";
-
-const notAnExpression: Result = {
-  ok: false,
-  reason: { kind: "not-an-expression" },
-};
+import { buildTrie } from "./units/trie.ts";
 
 function defaultNow(): Instant {
   return { epochMilliseconds: Date.now() };
@@ -24,16 +21,16 @@ export function createSubscript(config: SubscriptConfig = {}): Subscript {
   const locale = config.locale ?? "en-US";
   const now = config.now ?? defaultNow;
   const rates = config.rates;
+  const trie = buildTrie(locale);
+  void now;
+  void rates;
 
   return {
-    evaluate(_input: string): Result {
-      void locale;
-      void now;
-      void rates;
-      return notAnExpression;
+    evaluate(input: string): Result {
+      return runPipeline(input, trie).result;
     },
-    spans(_input: string): readonly Span[] {
-      return [];
+    spans(input: string): readonly Span[] {
+      return runPipeline(input, trie).spans;
     },
   };
 }
