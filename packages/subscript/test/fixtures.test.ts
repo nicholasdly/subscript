@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { createSubscript, type Result } from "../src/index.ts";
+import { createSubscript, isZonedTime, type Result } from "../src/index.ts";
+import { toWall } from "../src/tz.ts";
 import { fetchCalls, resetFetchCalls, stubFetch } from "./fetch-stub.ts";
 import { accept } from "./fixtures/accept.ts";
 import { reject } from "./fixtures/reject.ts";
@@ -44,7 +45,24 @@ function assertWellFormed(result: Result): void {
 function assertExpect(result: Result, expect: Fixture["expect"]): void {
   if (expect.ok) {
     assert.equal(result.ok, true);
-    if (result.ok) {
+    if (!result.ok) {
+      return;
+    }
+    assert.equal(result.text, expect.text);
+    if ("zoned" in expect) {
+      assert.equal(isZonedTime(result.value), true);
+      if (isZonedTime(result.value)) {
+        assert.equal(result.value.timeZone, expect.zoned.timeZone);
+        assert.equal(result.value.label, expect.zoned.label);
+        const wall = toWall(result.value);
+        assert.ok(wall);
+        assert.equal(wall.hour, expect.zoned.hour);
+        assert.equal(wall.minute, expect.zoned.minute);
+      }
+      return;
+    }
+    assert.equal(isZonedTime(result.value), false);
+    if (!isZonedTime(result.value)) {
       assert.equal(result.value.unit.id, expect.unitId);
       const eps = expect.eps ?? 0;
       if (eps === 0) {
@@ -52,7 +70,6 @@ function assertExpect(result: Result, expect: Fixture["expect"]): void {
       } else {
         assert.ok(Math.abs(result.value.value - expect.value) <= eps);
       }
-      assert.equal(result.text, expect.text);
     }
     return;
   }

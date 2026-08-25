@@ -17,6 +17,14 @@ export type Token =
   | (Located & { readonly kind: "converter"; readonly converter: ConverterWord })
   | (Located & { readonly kind: "operator"; readonly op: OperatorChar })
   | (Located & { readonly kind: "function"; readonly name: "sqrt" })
+  | (Located & {
+      readonly kind: "clock";
+      readonly hour: number;
+      readonly minute: number;
+      readonly second: number;
+    })
+  | (Located & { readonly kind: "timezone"; readonly zoneId: string })
+  | (Located & { readonly kind: "now" })
   | (Located & { readonly kind: "unknown" });
 
 /**
@@ -37,4 +45,8 @@ export type Ast =
   | { kind: "unary"; op: "-"; inner: Ast }
   | { kind: "binary"; op: BinaryOp; left: Ast; right: Ast }
   | { kind: "sqrt"; inner: Ast }
-  | { kind: "convert"; expr: Ast; toId: string };
+  | { kind: "convert"; expr: Ast; toId: string }
+  | { kind: "now" }
+  | { kind: "clock"; hour: number; minute: number; second: number }
+  | { kind: "zoned"; inner: Ast; zoneId: string }
+  | { kind: "convert-zone"; expr: Ast; toZoneId: string };

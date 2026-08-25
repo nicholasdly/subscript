@@ -1,6 +1,7 @@
 import { createFormatter } from "./format.ts";
 import { runPipeline, spansForInput } from "./pipeline.ts";
-import type { NowFn, Result, Span } from "./types.ts";
+import type { AmbiguousClock, NowFn, Result, Span } from "./types.ts";
+import { createTzEngine } from "./tz.ts";
 import { trieFor } from "./units/trie.ts";
 
 export type SubscriptConfig = {
@@ -11,10 +12,12 @@ export type SubscriptConfig = {
    * 2.5 kelvin.
    */
   compact?: boolean;
-  /** Injected clock. Unused until M5 wires time zones. */
+  /** Injected clock. Tests pass a fixed instant; the default reads Date.now. */
   now?: NowFn;
   /** Defaults to globalThis.fetch. Tests inject a stub; Redis later wraps this. */
   fetch?: typeof globalThis.fetch;
+  /** Default `"literal24"`: `3:00` is 03:00. */
+  ambiguousClock?: AmbiguousClock;
 };
 
 export type Subscript = {
@@ -24,15 +27,20 @@ export type Subscript = {
 
 export function createSubscript(config: SubscriptConfig = {}): Subscript {
   const trie = trieFor(config.locale ?? "en-US");
-  const format = createFormatter({ compact: config.compact ?? true });
+  const engine = createTzEngine();
+  const format = createFormatter({ compact: config.compact ?? true }, engine);
   const fetchFn = config.fetch ?? ((input, init) => globalThis.fetch(input, init));
+  const now: NowFn = config.now ?? (() => ({ epochMilliseconds: Date.now() }));
+  const ambiguousClock: AmbiguousClock = config.ambiguousClock ?? "literal24";
 
   return {
     evaluate(input: string): Promise<Result> {
-      return runPipeline(input, trie, format, fetchFn).then((output) => output.result);
+      return runPipeline(input, trie, format, fetchFn, now, ambiguousClock, engine).then(
+        (output) => output.result,
+      );
     },
     spans(input: string): readonly Span[] {
-      return spansForInput(input, trie);
+      return spansForInput(input, trie, ambiguousClock);
     },
   };
 }

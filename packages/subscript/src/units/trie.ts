@@ -8,6 +8,7 @@ import {
 } from "../chars.ts";
 import { MAX_ALIAS_LENGTH } from "../limits.ts";
 import type { ConverterWord } from "../token.ts";
+import { ZONE_ALIASES } from "../zones/aliases.ts";
 import {
   aliasesFor,
   dollarCurrency,
@@ -22,7 +23,9 @@ export type TrieValue =
   | { kind: "unit"; unitId: string }
   | { kind: "converter"; converter: ConverterWord }
   | { kind: "function"; name: "sqrt" }
-  | { kind: "ambiguous"; converter: ConverterWord; unitId: string };
+  | { kind: "ambiguous"; converter: ConverterWord; unitId: string }
+  | { kind: "timezone"; zoneId: string }
+  | { kind: "now" };
 
 export type TrieMatch = {
   readonly value: TrieValue;
@@ -106,6 +109,10 @@ function build(volume: VolumeLocale, dollar: string): TrieNode {
   insert(root, "sqrt", { kind: "function", name: "sqrt" });
   insert(root, "in", { kind: "converter", converter: "in" });
   insert(root, "in", { kind: "unit", unitId: "inch" });
+  insert(root, "now", { kind: "now" });
+  for (const row of ZONE_ALIASES) {
+    insert(root, row.alias, { kind: "timezone", zoneId: row.id });
+  }
   return root;
 }
 

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { formatQuantity } from "../src/format.ts";
-import type { Quantity } from "../src/index.ts";
+import { createFormatter, formatQuantity } from "../src/format.ts";
+import type { Quantity, ZonedTime } from "../src/index.ts";
 
 function q(value: number, id = "metre", symbol = "m"): Quantity {
   return { value, unit: { id, symbol } };
@@ -75,4 +75,28 @@ test("compact off prints money with fraction digits", () => {
 
 test("compact billion on money uses B not G", () => {
   assert.equal(formatQuantity(q(1e9, "usd", "$")), "$1B");
+});
+
+test("zoned time prints 12-hour clock, label, and rollover date", () => {
+  const format = createFormatter();
+  const sameDay: ZonedTime = {
+    kind: "zoned-time",
+    epochMilliseconds: Date.UTC(2026, 0, 15, 23, 0, 0),
+    timeZone: "pst",
+    label: "PST",
+    sourceYear: 2026,
+    sourceMonth: 1,
+    sourceDay: 15,
+  };
+  assert.equal(format(sameDay), "3:00 PM PST");
+  const rolled: ZonedTime = {
+    kind: "zoned-time",
+    epochMilliseconds: Date.UTC(2026, 0, 15, 23, 0, 0),
+    timeZone: "asia-tokyo",
+    label: "JST",
+    sourceYear: 2026,
+    sourceMonth: 1,
+    sourceDay: 15,
+  };
+  assert.equal(format(rolled), "8:00 AM JST, Jan 16");
 });

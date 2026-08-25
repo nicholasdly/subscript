@@ -140,3 +140,71 @@ test("$100 is unit then number before rewrite", () => {
   }
   assert.equal(result[1]?.kind, "number");
 });
+
+test("3pm is a clock token", () => {
+  const result = tokens("3pm");
+  assert.equal(result.length, 1);
+  assert.equal(result[0]?.kind, "clock");
+  if (result[0]?.kind === "clock") {
+    assert.equal(result[0].hour, 15);
+    assert.equal(result[0].minute, 0);
+  }
+});
+
+test("3:00 pm is one clock token covering the space", () => {
+  const result = tokens("3:00 pm");
+  assert.equal(result.length, 1);
+  assert.equal(result[0]?.kind, "clock");
+  if (result[0]?.kind === "clock") {
+    assert.equal(result[0].hour, 15);
+    assert.equal(result[0].start, 0);
+    assert.equal(result[0].end, 7);
+  }
+});
+
+test("15:00 is a 24-hour clock", () => {
+  const result = tokens("15:00");
+  assert.equal(result[0]?.kind, "clock");
+  if (result[0]?.kind === "clock") {
+    assert.equal(result[0].hour, 15);
+  }
+});
+
+test("1:30 is a clock, not a number", () => {
+  const result = tokens("1:30");
+  assert.equal(result.length, 1);
+  assert.equal(result[0]?.kind, "clock");
+});
+
+test("GMT+8 is one timezone token", () => {
+  const result = tokens("GMT+8");
+  assert.equal(result.length, 1);
+  assert.equal(result[0]?.kind, "timezone");
+  if (result[0]?.kind === "timezone") {
+    assert.equal(result[0].zoneId, "utc+0800");
+  }
+});
+
+test("25:00 is not a clock", () => {
+  const result = tokens("25:00");
+  assert.notEqual(result[0]?.kind, "clock");
+});
+
+test("2.5k is still number then kelvin", () => {
+  const result = tokens("2.5k");
+  assert.equal(result[0]?.kind, "number");
+  assert.equal(result[1]?.kind, "unit");
+});
+
+test("PST is a timezone", () => {
+  const result = tokens("PST");
+  assert.equal(result[0]?.kind, "timezone");
+  if (result[0]?.kind === "timezone") {
+    assert.equal(result[0].zoneId, "pst");
+  }
+});
+
+test("now is a now token", () => {
+  const result = tokens("now");
+  assert.equal(result[0]?.kind, "now");
+});

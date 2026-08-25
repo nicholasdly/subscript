@@ -14,6 +14,37 @@ When a plan in `docs/plans/` is done, add an entry at the top of the log:
 
 ## Log
 
+### 2026-08-25 — M5 Time zones
+
+Plan: [`docs/plans/m5-timezones.md`](./plans/m5-timezones.md)
+
+**What landed**
+
+- `Result.value` is `Quantity | ZonedTime`. `isZonedTime` is the type guard.
+  Time is not a ninth dimension and not a `Quantity`.
+- Clock lexing (`3pm`, `3:00`, `3:00 pm`, `15:00`), `now`, and a closed timezone
+  alias table. Three query shapes: `3pm PST`, `3pm PST in Tokyo`, `now in Tokyo`.
+- `PST`/`PDT`/… are fixed offsets. `pacific time` is `America/Los_Angeles`.
+  Conversion uses `Intl.DateTimeFormat` / `formatToParts`; no Temporal, no
+  shipped tzdata, no `@vvo/tzdb`.
+- DST gaps/overlaps follow Temporal `compatible` (later on spring-forward, earlier
+  on fall-back). `3:00` is 03:00; `ambiguousClock: "preferDaytime"` is the switch.
+- `now` is wired. Tests inject it. Default instance uses `Date.now`. Time paths
+  do not fetch. `spans` colors `timezone`.
+- Node 24 ICU still names India/Nepal `Asia/Calcutta` / `Asia/Katmandu`; those
+  are the IANA ids we pass to `Intl`.
+
+**Treat as given**
+
+- Time is not a Quantity. PST is an offset. Intl, not Temporal. Aliases are a
+  published closed list. `IST` is India; `CST` the abbreviation is US Central.
+  Clock times require a source zone. Identity money still does not fetch.
+
+**Deferred**
+
+- Temporal backend, airports, date literals, clock arithmetic, `time in Paris`,
+  bare `now`, default `timeZone` on config, `apps/web` product work, LICENSE.
+
 ### 2026-08-25 — M4 Currency
 
 Plan: [`docs/plans/m4-currency.md`](./plans/m4-currency.md)
@@ -49,7 +80,7 @@ Plan: [`docs/plans/m4-currency.md`](./plans/m4-currency.md)
 **Deferred**
 
 - Caching (Redis / TTL / HTTP cache), injected `RateProvider`, historical dates,
-  comment-word tolerance, implicit `$ × days`, crypto, time zones, `apps/web`
+  comment-word tolerance, implicit `$ × days`, crypto, `apps/web`
   product work, compact input (`$1k`).
 
 ### 2026-08-25 — M3 Formatting

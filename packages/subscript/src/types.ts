@@ -1,5 +1,6 @@
 export type Instant = { readonly epochMilliseconds: number };
 export type NowFn = () => Instant;
+export type AmbiguousClock = "literal24" | "preferDaytime";
 
 export type LimitName = "input-length" | "parse-depth" | "node-count";
 
@@ -11,6 +12,24 @@ export interface Unit {
 export interface Quantity {
   readonly value: number;
   readonly unit: Unit;
+}
+
+export type ZonedTime = {
+  readonly kind: "zoned-time";
+  readonly epochMilliseconds: number;
+  /** Catalog id (`pst`, `asia-tokyo`) or a synthetic offset id (`utc-0800`). */
+  readonly timeZone: string;
+  /** Short label used in `text` (`JST`, `PST`, `PT`). */
+  readonly label: string;
+  readonly sourceYear: number;
+  readonly sourceMonth: number;
+  readonly sourceDay: number;
+};
+
+export type EvalValue = Quantity | ZonedTime;
+
+export function isZonedTime(value: EvalValue): value is ZonedTime {
+  return "kind" in value && value.kind === "zoned-time";
 }
 
 export type Candidate = {
@@ -51,5 +70,5 @@ export type Failure =
   | { kind: "limit-exceeded"; limit: LimitName };
 
 export type Result =
-  | { ok: true; value: Quantity; text: string; alternates?: readonly Alternate[] }
+  | { ok: true; value: EvalValue; text: string; alternates?: readonly Alternate[] }
   | { ok: false; reason: Failure };

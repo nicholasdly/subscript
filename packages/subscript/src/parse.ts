@@ -183,10 +183,81 @@ class Parser {
 }
 
 function parseTokens(tokens: readonly Token[], convertTo: string | undefined): ParseResult {
-  if (tokens.some((token) => token.kind === "unknown")) {
+  if (
+    tokens.some(
+      (token) =>
+        token.kind === "unknown" ||
+        token.kind === "clock" ||
+        token.kind === "timezone" ||
+        token.kind === "now",
+    )
+  ) {
     return notAnExpression;
   }
   return new Parser(tokens).parse(convertTo);
+}
+
+function parseTimeQuery(tokens: readonly Token[]): ParseResult | undefined {
+  const first = tokens[0];
+  if (first === undefined || (first.kind !== "clock" && first.kind !== "now")) {
+    return undefined;
+  }
+
+  if (
+    tokens.length === 4 &&
+    tokens[0]?.kind === "clock" &&
+    tokens[1]?.kind === "timezone" &&
+    tokens[2]?.kind === "converter" &&
+    tokens[3]?.kind === "timezone"
+  ) {
+    return {
+      ok: true,
+      ast: {
+        kind: "convert-zone",
+        expr: {
+          kind: "zoned",
+          inner: {
+            kind: "clock",
+            hour: tokens[0].hour,
+            minute: tokens[0].minute,
+            second: tokens[0].second,
+          },
+          zoneId: tokens[1].zoneId,
+        },
+        toZoneId: tokens[3].zoneId,
+      },
+    };
+  }
+
+  if (tokens.length === 2 && tokens[0]?.kind === "clock" && tokens[1]?.kind === "timezone") {
+    return {
+      ok: true,
+      ast: {
+        kind: "zoned",
+        inner: {
+          kind: "clock",
+          hour: tokens[0].hour,
+          minute: tokens[0].minute,
+          second: tokens[0].second,
+        },
+        zoneId: tokens[1].zoneId,
+      },
+    };
+  }
+
+  if (
+    tokens.length === 3 &&
+    tokens[0]?.kind === "now" &&
+    tokens[1]?.kind === "converter" &&
+    tokens[2]?.kind === "timezone"
+  ) {
+    return {
+      ok: true,
+      ast: { kind: "convert-zone", expr: { kind: "now" }, toZoneId: tokens[2].zoneId },
+    };
+  }
+
+  return notAnExpression;
 }
 
 /**
@@ -194,6 +265,11 @@ function parseTokens(tokens: readonly Token[], convertTo: string | undefined): P
  * everything before it is the expression. Anything left over is a failure.
  */
 export function parse(tokens: readonly Token[]): ParseResult {
+  const time = parseTimeQuery(tokens);
+  if (time !== undefined) {
+    return time;
+  }
+
   const last = tokens[tokens.length - 1];
   const previous = tokens[tokens.length - 2];
 

@@ -32,3 +32,8 @@ test("keeps offsets correct across astral characters", () => {
 test("does not fold case or collapse spaces", () => {
   assert.equal(normalize("20  C").text, "20  C");
 });
+
+test("folds a.m. and p.m. to am and pm", () => {
+  const result = normalize("3 p.m. PST");
+  assert.equal(result.text, "3 pm PST");
+});

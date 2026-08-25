@@ -70,3 +70,14 @@ test("$100 colors the symbol then the digits", () => {
     { start: 1, end: 4, kind: "number" },
   ]);
 });
+
+test("3pm PST in Tokyo colors clock, zones, and converter", () => {
+  resetFetchCalls();
+  assert.deepEqual(subscript.spans("3pm PST in Tokyo"), [
+    { start: 0, end: 3, kind: "number" },
+    { start: 4, end: 7, kind: "timezone" },
+    { start: 8, end: 10, kind: "converter" },
+    { start: 11, end: 16, kind: "timezone" },
+  ]);
+  assert.equal(fetchCalls, 0);
+});

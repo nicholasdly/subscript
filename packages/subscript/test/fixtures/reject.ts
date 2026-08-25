@@ -101,4 +101,59 @@ export const reject: Fixture[] = [
     input: "$10 for lunch",
     expect: { ok: false, reason: "not-an-expression" },
   },
+  {
+    name: "bare-3pm",
+    input: "3pm",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
+  {
+    name: "bare-now",
+    input: "now",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
+  {
+    name: "pm-without-hour",
+    input: "pm PST",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
+  {
+    name: "clock-in-tokyo",
+    input: "3pm in Tokyo",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
+  {
+    name: "invalid-hour",
+    input: "25:00 PST in Tokyo",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
+  {
+    name: "cst-means-china",
+    input: "3pm China Standard",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
+  {
+    name: "iana-path",
+    input: "3pm America/Los_Angeles in Tokyo",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
+  {
+    name: "time-in-paris",
+    input: "time in Paris",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
+  {
+    name: "clock-plus-hour",
+    input: "3pm PST + 2 hours",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
+  {
+    name: "celsius-in-tokyo",
+    input: "20 c in Tokyo",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
+  {
+    name: "pst-in-metres",
+    input: "3pm PST in metres",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
 ];

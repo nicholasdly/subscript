@@ -5,6 +5,7 @@ import {
   add,
   convert,
   div,
+  isZonedTime,
   mul,
   quantity,
   sqrt,
@@ -18,7 +19,7 @@ import { fetchCalls, resetFetchCalls, stubFetch } from "./fetch-stub.ts";
 
 function assertQty(result: Result, id: string, value: number, eps = 0): void {
   assert.equal(result.ok, true);
-  if (result.ok) {
+  if (result.ok && !isZonedTime(result.value)) {
     assert.equal(result.value.unit.id, id);
     if (eps === 0) {
       assert.equal(result.value.value, value);
@@ -38,7 +39,7 @@ function assertFail(result: Result, kind: Failure["kind"]): void {
 function q(value: number, unitId?: string): Quantity {
   const result = quantity(value, unitId);
   assert.equal(result.ok, true);
-  if (!result.ok) {
+  if (!result.ok || isZonedTime(result.value)) {
     throw new Error(`quantity(${value}, ${unitId}) failed`);
   }
   return result.value;

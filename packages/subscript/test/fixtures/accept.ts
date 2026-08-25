@@ -1,4 +1,4 @@
-import type { Fixture } from "./types.ts";
+import { SUMMER_NOW, WINTER_NOW, type Fixture } from "./types.ts";
 
 export const accept: Fixture[] = [
   {
@@ -70,14 +70,13 @@ export const accept: Fixture[] = [
   {
     name: "pst-in-tokyo",
     input: "3pm PST in Tokyo",
+    now: WINTER_NOW,
     expect: {
       ok: true,
-      text: "8:00 JST",
-      unitId: "1",
-      value: 0,
+      text: "8:00 AM JST, Jan 16",
+      zoned: { timeZone: "asia-tokyo", label: "JST", hour: 8, minute: 0 },
     },
-    todo: true,
-    notes: "M3 correctly refuses. text is a placeholder until M5.",
+    noFetch: true,
   },
   {
     name: "bare-number",
@@ -305,6 +304,116 @@ export const accept: Fixture[] = [
     name: "usd-times-eur",
     input: "$10 * €5",
     expect: { ok: false, reason: "unknown-unit" },
+    noFetch: true,
+  },
+  {
+    name: "pst-identity",
+    input: "3pm PST in PST",
+    now: WINTER_NOW,
+    expect: {
+      ok: true,
+      text: "3:00 PM PST",
+      zoned: { timeZone: "pst", label: "PST", hour: 15, minute: 0 },
+    },
+    noFetch: true,
+  },
+  {
+    name: "now-in-tokyo",
+    input: "now in Tokyo",
+    now: WINTER_NOW,
+    expect: {
+      ok: true,
+      text: "3:00 AM JST, Jan 16",
+      zoned: { timeZone: "asia-tokyo", label: "JST", hour: 3, minute: 0 },
+    },
+    noFetch: true,
+  },
+  {
+    name: "pdt-in-tokyo-winter",
+    input: "3pm PDT in Tokyo",
+    now: WINTER_NOW,
+    expect: {
+      ok: true,
+      text: "7:00 AM JST, Jan 16",
+      zoned: { timeZone: "asia-tokyo", label: "JST", hour: 7, minute: 0 },
+    },
+    noFetch: true,
+  },
+  {
+    name: "pt-in-tokyo-summer",
+    input: "3pm pacific time in Tokyo",
+    now: SUMMER_NOW,
+    expect: {
+      ok: true,
+      text: "7:00 AM JST, Jul 16",
+      zoned: { timeZone: "asia-tokyo", label: "JST", hour: 7, minute: 0 },
+    },
+    noFetch: true,
+  },
+  {
+    name: "pst-in-tokyo-summer",
+    input: "3pm PST in Tokyo",
+    now: SUMMER_NOW,
+    expect: {
+      ok: true,
+      text: "8:00 AM JST, Jul 16",
+      zoned: { timeZone: "asia-tokyo", label: "JST", hour: 8, minute: 0 },
+    },
+    noFetch: true,
+  },
+  {
+    name: "ist-india",
+    input: "3pm IST in UTC",
+    now: WINTER_NOW,
+    expect: {
+      ok: true,
+      text: "9:30 AM UTC",
+      zoned: { timeZone: "utc+0000", label: "UTC", hour: 9, minute: 30 },
+    },
+    noFetch: true,
+  },
+  {
+    name: "utc-offset",
+    input: "3pm GMT+9 in Tokyo",
+    now: WINTER_NOW,
+    expect: {
+      ok: true,
+      text: "3:00 PM JST",
+      zoned: { timeZone: "asia-tokyo", label: "JST", hour: 15, minute: 0 },
+    },
+    noFetch: true,
+  },
+  {
+    name: "literal-3-colon",
+    input: "3:00 PST in PST",
+    now: WINTER_NOW,
+    expect: {
+      ok: true,
+      text: "3:00 AM PST",
+      zoned: { timeZone: "pst", label: "PST", hour: 3, minute: 0 },
+    },
+    noFetch: true,
+  },
+  {
+    name: "three-pm-space",
+    input: "3 pm PST in PST",
+    now: WINTER_NOW,
+    expect: {
+      ok: true,
+      text: "3:00 PM PST",
+      zoned: { timeZone: "pst", label: "PST", hour: 15, minute: 0 },
+    },
+    noFetch: true,
+  },
+  {
+    name: "beijing-in-utc",
+    input: "3pm beijing in utc",
+    now: WINTER_NOW,
+    expect: {
+      ok: true,
+      text: "7:00 AM UTC",
+      zoned: { timeZone: "utc+0000", label: "UTC", hour: 7, minute: 0 },
+    },
     noFetch: true,
   },
 ];

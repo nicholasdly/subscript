@@ -1,5 +1,6 @@
 import { RELATIVE_EPS } from "./numeric.ts";
-import type { Quantity } from "./types.ts";
+import { isZonedTime, type EvalValue, type Quantity, type ZonedTime } from "./types.ts";
+import { createTzEngine, toWall, type TzEngine } from "./tz.ts";
 import { isCurrency } from "./units/kinds.ts";
 import { lookupUnit } from "./units/lookup.ts";
 
@@ -7,7 +8,7 @@ export type FormatConfig = {
   compact?: boolean;
 };
 
-export type Formatter = (qty: Quantity) => string;
+export type Formatter = (value: EvalValue) => string;
 
 const SUFFIXES: readonly { suffix: string; size: number }[] = [
   { suffix: "P", size: 1e15 },
@@ -185,17 +186,55 @@ function formatMoney(
   return formatter.format(value).replaceAll("\u2212", "-");
 }
 
-export function createFormatter(config: FormatConfig = {}): Formatter {
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function formatZoned(zoned: ZonedTime, engine: TzEngine): string {
+  const target = toWall(zoned, engine);
+  if (target === undefined) {
+    return "";
+  }
+  const hour12 = target.hour % 12 === 0 ? 12 : target.hour % 12;
+  const ampm = target.hour < 12 ? "AM" : "PM";
+  let clock = `${hour12}:${pad2(target.minute)}`;
+  if (target.second !== 0) {
+    clock += `:${pad2(target.second)}`;
+  }
+  let text = `${clock} ${ampm} ${zoned.label}`;
+  const rolled =
+    target.year !== zoned.sourceYear ||
+    target.month !== zoned.sourceMonth ||
+    target.day !== zoned.sourceDay;
+  if (rolled) {
+    const month = MONTHS[target.month - 1] ?? "";
+    text += `, ${month} ${target.day}`;
+    if (target.year !== zoned.sourceYear) {
+      text += `, ${target.year}`;
+    }
+  }
+  return text;
+}
+
+export function createFormatter(
+  config: FormatConfig = {},
+  engine: TzEngine = createTzEngine(),
+): Formatter {
   const compact = config.compact ?? true;
   const formats = numberFormats();
   const currencyFormatters = new Map<string, Intl.NumberFormat>();
-  return (qty) => {
-    const def = lookupUnit(qty.unit.id);
-    if (def !== undefined && isCurrency(def)) {
-      return formatMoney(qty.value, def.id, def.symbol, compact, currencyFormatters);
+  return (value) => {
+    if (isZonedTime(value)) {
+      return formatZoned(value, engine);
     }
-    const number = formatNumber(qty.value, compact, qty.unit.symbol === "", formats);
-    return qty.unit.symbol === "" ? number : `${number} ${qty.unit.symbol}`;
+    const def = lookupUnit(value.unit.id);
+    if (def !== undefined && isCurrency(def)) {
+      return formatMoney(value.value, def.id, def.symbol, compact, currencyFormatters);
+    }
+    const number = formatNumber(value.value, compact, value.unit.symbol === "", formats);
+    return value.unit.symbol === "" ? number : `${number} ${value.unit.symbol}`;
   };
 }
 

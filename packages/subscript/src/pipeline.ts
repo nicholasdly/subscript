@@ -9,7 +9,19 @@ import { enumerateReadings, readsInAsConverter } from "./rank.ts";
 import { newSession, type QuoteSession } from "./rates.ts";
 import { rewrite } from "./rewrite.ts";
 import type { Ast, Token } from "./token.ts";
-import type { Alternate, LimitName, Quantity, Result, Span, SpanKind } from "./types.ts";
+import {
+  isZonedTime,
+  type Alternate,
+  type AmbiguousClock,
+  type Instant,
+  type LimitName,
+  type NowFn,
+  type Quantity,
+  type Result,
+  type Span,
+  type SpanKind,
+} from "./types.ts";
+import { lookupZone, retarget, toZonedTime, zoneWall, type TzEngine } from "./tz.ts";
 import { isCurrency } from "./units/kinds.ts";
 import { lookupUnit } from "./units/lookup.ts";
 import type { TrieNode } from "./units/trie.ts";
@@ -29,7 +41,11 @@ function limitExceeded(limit: LimitName): Result {
 function spanKind(token: Token): SpanKind {
   switch (token.kind) {
     case "number":
+    case "clock":
+    case "now":
       return "number";
+    case "timezone":
+      return "timezone";
     case "unit": {
       const def = lookupUnit(token.unitId);
       return def !== undefined && isCurrency(def) ? "currency" : "unit";
@@ -68,32 +84,112 @@ function power(base: Quantity, exponent: Quantity): Result {
   return quantity(numeric.pow(base.value, exponent.value));
 }
 
-async function evaluateAst(ast: Ast, rates: QuoteSession): Promise<Result> {
+type EvalCtx = {
+  readonly instant: Instant;
+  readonly engine: TzEngine;
+};
+
+function okZoned(value: ReturnType<typeof retarget>): Result {
+  return { ok: true, value, text: "" };
+}
+
+async function evaluateAst(ast: Ast, rates: QuoteSession, ctx: EvalCtx): Promise<Result> {
   switch (ast.kind) {
     case "number":
       return quantity(ast.value);
     case "quantity":
       return quantity(ast.value, ast.unitId);
+    case "clock":
+    case "now":
+      return notAnExpression;
+    case "zoned": {
+      if (ast.inner.kind !== "clock") {
+        return notAnExpression;
+      }
+      const zone = lookupZone(ast.zoneId);
+      if (zone === undefined) {
+        return notAnExpression;
+      }
+      const today = zoneWall(ctx.instant.epochMilliseconds, zone, ctx.engine);
+      const local = {
+        year: today.year,
+        month: today.month,
+        day: today.day,
+        hour: ast.inner.hour,
+        minute: ast.inner.minute,
+        second: ast.inner.second,
+      };
+      const zoned = toZonedTime(local, zone, ctx.engine);
+      return zoned === undefined ? notAnExpression : okZoned(zoned);
+    }
+    case "convert-zone": {
+      const toZone = lookupZone(ast.toZoneId);
+      if (toZone === undefined) {
+        return notAnExpression;
+      }
+      if (ast.expr.kind === "now") {
+        const epoch = ctx.instant.epochMilliseconds;
+        const utc = new Date(epoch);
+        return okZoned({
+          kind: "zoned-time",
+          epochMilliseconds: epoch,
+          timeZone: toZone.id,
+          label: toZone.label,
+          sourceYear: utc.getUTCFullYear(),
+          sourceMonth: utc.getUTCMonth() + 1,
+          sourceDay: utc.getUTCDate(),
+        });
+      }
+      const inner = await evaluateAst(ast.expr, rates, ctx);
+      if (!inner.ok) {
+        return inner;
+      }
+      if (!isZonedTime(inner.value)) {
+        return notAnExpression;
+      }
+      return okZoned(retarget(inner.value, toZone));
+    }
     case "unary": {
-      const inner = await evaluateAst(ast.inner, rates);
-      return inner.ok ? quantity(-inner.value.value, inner.value.unit.id) : inner;
+      const inner = await evaluateAst(ast.inner, rates, ctx);
+      if (!inner.ok) {
+        return inner;
+      }
+      if (isZonedTime(inner.value)) {
+        return notAnExpression;
+      }
+      return quantity(-inner.value.value, inner.value.unit.id);
     }
     case "sqrt": {
-      const inner = await evaluateAst(ast.inner, rates);
-      return inner.ok ? sqrt(inner.value) : inner;
+      const inner = await evaluateAst(ast.inner, rates, ctx);
+      if (!inner.ok) {
+        return inner;
+      }
+      if (isZonedTime(inner.value)) {
+        return notAnExpression;
+      }
+      return sqrt(inner.value);
     }
     case "convert": {
-      const inner = await evaluateAst(ast.expr, rates);
-      return inner.ok ? convert(inner.value, ast.toId, rates) : inner;
+      const inner = await evaluateAst(ast.expr, rates, ctx);
+      if (!inner.ok) {
+        return inner;
+      }
+      if (isZonedTime(inner.value)) {
+        return notAnExpression;
+      }
+      return convert(inner.value, ast.toId, rates);
     }
     case "binary": {
-      const left = await evaluateAst(ast.left, rates);
+      const left = await evaluateAst(ast.left, rates, ctx);
       if (!left.ok) {
         return left;
       }
-      const right = await evaluateAst(ast.right, rates);
+      const right = await evaluateAst(ast.right, rates, ctx);
       if (!right.ok) {
         return right;
+      }
+      if (isZonedTime(left.value) || isZonedTime(right.value)) {
+        return notAnExpression;
       }
       switch (ast.op) {
         case "+":
@@ -132,6 +228,8 @@ function alternatesFor(
       reading === winner ||
       !reading.result.ok ||
       !winner.result.ok ||
+      isZonedTime(reading.result.value) ||
+      isZonedTime(winner.result.value) ||
       sameQuantity(reading.result.value, winner.result.value)
     ) {
       continue;
@@ -157,23 +255,27 @@ export async function runPipeline(
   trie: TrieNode,
   format: Formatter,
   fetchFn: typeof globalThis.fetch,
+  now: NowFn,
+  ambiguousClock: AmbiguousClock,
+  engine: TzEngine,
 ): Promise<PipelineOutput> {
   if (input.length > INPUT_LENGTH_LIMIT) {
     return { result: limitExceeded("input-length"), spans: [] };
   }
 
-  const readings = enumerateReadings(lex(normalize(input), trie));
+  const readings = enumerateReadings(lex(normalize(input), trie, ambiguousClock));
   if (readings === undefined) {
     return nothing;
   }
 
   const rates = newSession(fetchFn);
+  const ctx: EvalCtx = { instant: now(), engine };
   const evaluated: Reading[] = [];
   for (const reading of readings) {
     const tokens = rewrite(reading);
     const parsed = parse(tokens);
     if (parsed.ok) {
-      evaluated.push({ result: await evaluateAst(parsed.ast, rates), tokens });
+      evaluated.push({ result: await evaluateAst(parsed.ast, rates, ctx), tokens });
     } else if (parsed.limit !== undefined) {
       evaluated.push({ result: limitExceeded(parsed.limit), tokens });
     }
@@ -198,12 +300,16 @@ export async function runPipeline(
 }
 
 /** Parse and rank without evaluating, so coloring never quotes Frankfurter. */
-export function spansForInput(input: string, trie: TrieNode): readonly Span[] {
+export function spansForInput(
+  input: string,
+  trie: TrieNode,
+  ambiguousClock: AmbiguousClock = "literal24",
+): readonly Span[] {
   if (input.length > INPUT_LENGTH_LIMIT) {
     return [];
   }
 
-  const readings = enumerateReadings(lex(normalize(input), trie));
+  const readings = enumerateReadings(lex(normalize(input), trie, ambiguousClock));
   if (readings === undefined) {
     return [];
   }
