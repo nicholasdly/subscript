@@ -1,14 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import {
-  aliasesFor,
-  UNIT_ALIASES,
-  UPPERCASE_ONLY_IDS,
-  dollarCurrency,
-  volumeLocale,
-  type VolumeLocale,
-} from "../src/units/aliases.ts";
+import { aliasesFor, UNIT_ALIASES, volumeLocale, type VolumeLocale } from "../src/units/aliases.ts";
 import { lookupUnit } from "../src/units/lookup.ts";
 import { matchTrie, trieFor, type TrieValue } from "../src/units/trie.ts";
 
@@ -33,7 +26,7 @@ test("volume locale is imperial only for en-GB", () => {
 test("non-locale aliases are unique", () => {
   const seen = new Map<string, string>();
   for (const row of UNIT_ALIASES) {
-    if (row.locale !== undefined || row.dollar !== undefined) {
+    if (row.locale !== undefined) {
       continue;
     }
     const previous = seen.get(row.alias);
@@ -46,24 +39,19 @@ test("every alias id exists in the unit table", () => {
   for (const row of UNIT_ALIASES) {
     assert.notEqual(lookupUnit(row.id), undefined, row.id);
   }
-  for (const id of UPPERCASE_ONLY_IDS) {
-    assert.notEqual(lookupUnit(id), undefined, id);
-  }
 });
 
 test("resolved aliases are unique per locale except in", () => {
   for (const volume of ["us", "gb"] as VolumeLocale[]) {
-    for (const dollar of ["usd", "cad", "aud"]) {
-      const seen = new Map<string, string>();
-      for (const row of aliasesFor(volume, dollar)) {
-        const previous = seen.get(row.alias);
-        assert.equal(
-          previous,
-          undefined,
-          `duplicate ${row.alias} in ${volume}/${dollar}: ${previous} vs ${row.id}`,
-        );
-        seen.set(row.alias, row.id);
-      }
+    const seen = new Map<string, string>();
+    for (const row of aliasesFor(volume)) {
+      const previous = seen.get(row.alias);
+      assert.equal(
+        previous,
+        undefined,
+        `duplicate ${row.alias} in ${volume}: ${previous} vs ${row.id}`,
+      );
+      seen.set(row.alias, row.id);
     }
   }
 });
@@ -102,31 +90,4 @@ test("temperature interval symbols are not typeable", () => {
   for (const symbol of ["\u0394\u00b0C", "\u0394\u00b0F"]) {
     assert.equal(match("en-US", symbol), undefined, symbol);
   }
-});
-
-test("$ follows the locale region", () => {
-  assert.equal(dollarCurrency("en-US"), "usd");
-  assert.equal(dollarCurrency("en-GB"), "usd");
-  assert.equal(dollarCurrency("en-CA"), "cad");
-  assert.equal(dollarCurrency("en-AU"), "aud");
-  assert.equal(unitId("en-US", "$"), "usd");
-  assert.equal(unitId("en-CA", "$"), "cad");
-  assert.equal(unitId("en-AU", "$"), "aud");
-  assert.equal(unitId("en-GB", "$"), "usd");
-});
-
-test("US$ is usd even in Canada", () => {
-  assert.equal(unitId("en-CA", "US$"), "usd");
-});
-
-test("pound is mass, sterling is gbp", () => {
-  assert.equal(unitId("en-US", "pound"), "pound");
-  assert.equal(unitId("en-US", "pounds"), "pound");
-  assert.equal(unitId("en-US", "gbp"), "gbp");
-  assert.equal(unitId("en-GB", "£"), "gbp");
-});
-
-test("TRY is turkish lira in the trie; case is enforced in the lexer", () => {
-  assert.equal(unitId("en-US", "TRY"), "try");
-  assert.equal(unitId("en-US", "try"), "try");
 });

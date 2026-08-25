@@ -60,15 +60,22 @@ The real argument for decimals is legibility, not accuracy, so we address legibi
 swapping the numeric backend later is a contained change rather than a rewrite. Revisit if the
 corpus produces a case where float64 is genuinely visible.
 
-### 1.3 Units and arithmetic first; currency second; time zones last
+### 1.3 Units and arithmetic first; time zones last. Currency is out of scope.
 
-Matches §15. Units share a single evaluator with currency (a currency is a unit whose scale loads
-at runtime, §8.1), so currency is mostly operational work on top of a finished core. Time zones
-reuse almost none of it and carry the largest data and maintenance tail (§9), so they go last.
+Matches §15 except we drop currency. Units are the core. Time zones reuse almost none of
+the quantity machinery and carry the largest data and maintenance tail (§9), so they go
+last.
 
-When application work begins, `apps/web` should demo a units-and-arithmetic calculator first.
-A demo that does one domain convincingly is a better artifact than one that does four badly.
-Application integration is planned separately from the package milestones below.
+Currency is a unit whose scale loads at runtime (§8.1). That is either a network call
+inside `evaluate` or a `RateProvider` the host must supply. The first makes the engine
+async and ties a free library to a third-party API. The second is configuration the 95%
+path was never supposed to need. Neither fits `goal.md`. Historical rates, crypto, and an
+injected provider are the same tradeoff deferred; they are not later work.
+
+When application work begins, `apps/web` should demo a units-and-arithmetic calculator
+first. A demo that does one domain convincingly is a better artifact than one that does
+four badly. Application integration is planned separately from the package milestones
+below.
 
 ### 1.4 Hand-authored unit data, cited per entry; `subscript` stays MIT
 
@@ -99,7 +106,7 @@ Synchronous. No network. No configuration required. This is what 95% of consumer
 be the entire README quickstart.
 
 **A function, not a class.** A class is the wrong default here for a specific reason: a
-`new Subscript()` that owns the unit table, the currency table, and the timezone aliases cannot be
+`new Subscript()` that owns the unit table and the timezone aliases cannot be
 tree-shaken, and the data tables are the bulk of the bundle (§13). Free functions importing only
 what they need let a bundler drop the domains a consumer never touches. A class also implies
 mutable instance state, and there is none — the engine is a pure function of `(input, config)`.
@@ -112,16 +119,15 @@ import { createSubscript } from "subscript";
 const subscript = createSubscript({
   locale: "en-US",
   now: () => Temporal.Now.instant(), // injected, never read from the ambient clock
-  rates: myRateProvider, // opt-in; absent means currency returns a typed "unconfigured"
 });
 
-subscript.evaluate("100 usd in eur");
+subscript.evaluate("3pm PST in Tokyo");
 ```
 
 This exists for two reasons beyond configuration. First, per-keystroke evaluation means the alias
 trie and the `Intl` formatter instances must be built once and reused (§4.6, §7.4) — the factory is
-where that caching lives. Second, determinism: `now` and `rates` are injected, never ambient, so a
-test or a retried tool call cannot drift (§3.5, `lingo`).
+where that caching lives. Second, determinism: `now` is injected, never ambient, so a
+test or a retried tool call cannot drift (`lingo`).
 
 `evaluate(input, options?)` from layer 1 is a thin wrapper over a lazily-created default instance.
 
@@ -135,8 +141,8 @@ because the internal token types change between releases (§13).
 So we design that surface deliberately and separately from the start:
 
 ```ts
-subscript.spans("100 usd in eur");
-// [{ start: 0, end: 3, kind: "number" }, { start: 4, end: 7, kind: "currency" }, ...]
+subscript.spans("20 c to f");
+// [{ start: 0, end: 2, kind: "number" }, { start: 3, end: 4, kind: "unit" }, ...]
 ```
 
 `spans()` is a stable, documented, semantic view. The raw pipeline stages (`normalize`, `lex`,
@@ -145,7 +151,7 @@ semver. Anyone reaching into them is on notice.
 
 ### 2.4 The result type
 
-Errors and pending states are values, not exceptions (§5.3). Nothing in the public API throws for
+Errors are values, not exceptions (§5.3). Nothing in the public API throws for
 input-shaped reasons.
 
 ```ts
@@ -158,8 +164,6 @@ type Failure =
   | { kind: "dimension-mismatch"; from: Unit; to: Unit }
   | { kind: "unknown-unit"; token: string }
   | { kind: "ambiguous"; token: string; candidates: Candidate[] }
-  | { kind: "rate-unavailable"; currency: string } // provider not configured
-  | { kind: "rate-pending"; currency: string } // provider fetching
   | { kind: "precision-loss" } // §10, refusing rather than lying
   | { kind: "limit-exceeded"; limit: LimitName }; // §5.4
 ```
@@ -167,7 +171,7 @@ type Failure =
 `not-an-expression` is the common case and must be cheap — a launcher calls this on every
 keystroke and discards most results.
 
-`alternates` is where we honor §7.3: when a token is genuinely ambiguous (`oz`, `$`, `IST`), pick
+`alternates` is where we honor §7.3: when a token is genuinely ambiguous (`oz`, `IST`), pick
 the locale-biased default _and_ return the alternative, so a host can offer it. Silently choosing is
 the confident-wrongness failure mode; refusing to choose is unhelpful. Returning both is neither.
 
@@ -190,7 +194,7 @@ Grammar on top of it stays tiny:
 ```
 query     := expr (converter target)?
 converter := "to" | "in" | "as" | "→"
-target    := unit | currency | timezone | base
+target    := unit | timezone | base
 ```
 
 Deliberately deferred: the inverted form (`meters in 10 km`) and the bare two-unit shorthand
@@ -244,32 +248,27 @@ Two jobs, both token-stream pattern matches rather than unbounded lexer lookahea
 
 - **Phrase fusion** — `light year`, `fluid ounce`, `nautical mile`, `pacific time` become single
   tokens.
-- **Implicit operator insertion** — `5 ft 11 in` is an addition, `2.5k` is a multiplication,
-  `$30 × 4 days` is an implicit rate (§6).
+- **Implicit operator insertion** — `5 ft 11 in` is an addition.
 
 Keeping this separate is what lets the grammar stay small enough to reason about.
 
-### 3.5 Currency
+### 3.5 Currency — out of scope
 
-A currency is a unit whose scale factor loads at runtime and changes daily (§8.1). One evaluator
-serves both. Everything hard about currency is operational:
+A currency is a unit whose scale factor loads at runtime and changes daily (§8.1). That is
+the whole problem, and it has no shape that fits this library:
 
-- **No network by default, ever.** The library takes an injected rate provider. A missing provider
-  yields `rate-unavailable`, not a guess and not a silent fetch. `solve-engine` is candid that its
-  defaults fetch unprompted with no host configuration (§13); for a library that is the less
-  defensible choice, and avoiding it makes "works offline" trivially true instead of carefully
-  qualified.
-- **Never fetch on keystroke.** Providers refresh a snapshot in the background. All rates are stored
-  against a single base currency and conversion is two-lookup triangulation (§8.2).
-- **Pending and stale are value states**, distinguishable from each other and from zero all the way
-  through arithmetic to the formatter (§5.3).
-- Reference rates are not tradeable rates, and the formatted output must not imply otherwise (§8.2).
+- A built-in fetch makes `evaluate` async, adds a third-party network dependency, and
+  silently fails offline. `solve-engine` is candid that its defaults fetch unprompted
+  with no host configuration (§13); for a library that is the less defensible choice.
+- An injected `RateProvider` keeps the package offline, but every consumer then has to
+  supply rates. The one-function path in §2.1 stops being the whole quickstart.
 
-Ship a hard-coded rate floor as SoulverCore does (§8.2) only behind an explicit opt-in flag, so
-"slightly wrong with a warning" is a choice the host makes rather than one we make for it.
+So we do not parse ISO codes, `$`, or money arithmetic. `100 usd in eur` is
+`not-an-expression`. No rate failure kinds, no `currency` span kind, no dimension `C`.
+`evaluate` stays a pure synchronous function of `(input, config)`.
 
-Deferred: historical rates. They turn a snapshot into a time series and change the data
-architecture materially (§8.4). Better as an explicit "not in v1" than a later surprise.
+Historical rates, crypto, a hard-coded rate floor, and a separate rates package are the
+same tradeoff under other names. They are not v1 and they are not a later milestone.
 
 ### 3.6 Time zones
 
@@ -373,18 +372,11 @@ making them late means revisiting M1.
 
 **Exit:** every positive corpus case asserts on the formatted string, not just the numeric value.
 
-### M4 — Currency
+### M4 — Currency — cancelled
 
-- `RateProvider` interface; nothing built in that makes network calls.
-- Base-currency triangulation; pending/stale/unavailable as value states.
-- Symbol disambiguation: `$` → locale default, with `US$`, `C$`, `A$`, `NZ$`, `S$`, `HK$`, `R$`
-  prefixes (§8.3).
-- Guard the ISO-code-versus-English-word collisions: `IN`, `AS`, `TO`, `AT`, `ALL`, `TRY`, `NO`,
-  `AM`, `PM` (§8.3). Case sensitivity is the cheap lever here.
-- A reference provider shipped as a **separate package or example**, not as a default.
-
-**Exit:** currency conversion works with an injected provider, returns a typed failure without one,
-and the corpus covers stale and pending paths.
+Currency conversion is out of scope. See §3.5. The work that landed here (Frankfurter, async
+`evaluate`, dimension `C`, an ISO catalog) was reversed so the engine is synchronous and
+has no network.
 
 ### M5 — Time zones
 
@@ -408,9 +400,9 @@ than discovered by trial and error.
 ### Explicitly not now
 
 Documented as out of scope so they are decisions rather than oversights: comment-word tolerance,
-historical rates, non-English input, logarithmic units (dB, pH), variables and multi-line documents,
-bytecode compilation or a VM (`solve-engine` justifies its VM by a per-keystroke-on-a-whole-document
-workload we do not have yet, §3.3).
+currency conversion, historical rates, non-English input, logarithmic units (dB, pH), variables and
+multi-line documents, bytecode compilation or a VM (`solve-engine` justifies its VM by a
+per-keystroke-on-a-whole-document workload we do not have yet, §3.3).
 
 ---
 
@@ -436,11 +428,11 @@ it does not help.
 
 Mitigation: cite the primary source on every data entry from the first commit, never copy a
 compilation, and keep `docs/history.md` current. The `§16` license questions — CLDR, GeoNames,
-IATA, ISO 4217, UDUNITS — need answers before those datasets are touched, not after.
+IATA, UDUNITS — need answers before those datasets are touched, not after.
 
 ### 5.3 Every ambiguity has no correct answer
 
-`oz`, `$`, `IST`, `m`, `%`, `G`, US vs imperial gallons, `PST` in July, whether `3:00` is 3am or 3pm.
+`oz`, `IST`, `m`, `%`, `G`, US vs imperial gallons, `PST` in July, whether `3:00` is 3am or 3pm.
 The research is unambiguous that these cannot be resolved by cleverness — they are resolved by
 policy. The discipline: **name it, pick a locale-biased default, document it publicly, expose the
 switch, and surface the alternative in the result.** Any ambiguity we resolve silently and don't
@@ -458,9 +450,8 @@ Guard: track corpus pass rate as the progress metric, not code written.
 ### 5.5 A permanent maintenance tail
 
 IANA publishes tzdata multiple times a year and stale rules produce silently wrong answers (§9.5).
-Currency rates go stale hourly. The alias table grows forever. Deciding to rely on runtime tzdata
-(§3.6) and to inject rate providers (§3.5) is partly a decision to push that tail onto platforms
-that already carry it.
+The alias table grows forever. Deciding to rely on runtime tzdata (§3.6) is partly a decision to
+push that tail onto platforms that already carry it.
 
 ### 5.6 Untrusted input on every keystroke
 
@@ -472,7 +463,7 @@ into a fatal one, so a total budget is needed alongside per-step ones.
 
 ### 5.7 Bundle weight
 
-Tens of thousands of aliases across units, currencies, cities, and timezones is real weight (§13).
+Tens of thousands of aliases across units, cities, and timezones is real weight (§13).
 This is why layer 1 is free functions rather than a class (§2.1), why domain modules must be
 independently importable, and why locale data should be separate entry points. Measure the bundle
 from M2 rather than discovering it at publish time.
@@ -519,13 +510,6 @@ milestone that needs it.
   `Intl.supportedValuesOf("unit")` — this determines how large our own display-name table must be.
 - Does CLDR `unitPreferenceData` exist, and does it answer "what unit should the result be in" by
   locale and usage?
-
-**Before M4 (currency):**
-
-- Terms of the free no-key rate providers, especially whether caching and redistribution are
-  permitted.
-- An authoritative source for ISO 4217 minor-unit exponents.
-- Severity of ISO-code-versus-English-word collisions in practice.
 
 **Before M5 (time zones):**
 

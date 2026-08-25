@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { createSubscript } from "../src/index.ts";
-import { fetchCalls, resetFetchCalls, stubFetch } from "./fetch-stub.ts";
 
 const subscript = createSubscript();
 
@@ -60,32 +59,16 @@ test("over-length input yields no spans", () => {
   assert.deepEqual(subscript.spans("x".repeat(257)), []);
 });
 
-test("100 usd in eur colors currency and does not fetch", () => {
-  resetFetchCalls();
-  const quoted = createSubscript({ fetch: stubFetch });
-  assert.deepEqual(quoted.spans("100 usd in eur"), [
-    { start: 0, end: 3, kind: "number" },
-    { start: 4, end: 7, kind: "currency" },
-    { start: 8, end: 10, kind: "converter" },
-    { start: 11, end: 14, kind: "currency" },
-  ]);
-  assert.equal(fetchCalls, 0);
-});
-
-test("$100 colors the symbol then the digits", () => {
-  assert.deepEqual(subscript.spans("$100"), [
-    { start: 0, end: 1, kind: "currency" },
-    { start: 1, end: 4, kind: "number" },
-  ]);
+test("currency queries are not expressions and yield no spans", () => {
+  assert.deepEqual(subscript.spans("100 usd in eur"), []);
+  assert.deepEqual(subscript.spans("$100"), []);
 });
 
 test("3pm PST in Tokyo colors clock, zones, and converter", () => {
-  resetFetchCalls();
   assert.deepEqual(subscript.spans("3pm PST in Tokyo"), [
     { start: 0, end: 3, kind: "number" },
     { start: 4, end: 7, kind: "timezone" },
     { start: 8, end: 10, kind: "converter" },
     { start: 11, end: 16, kind: "timezone" },
   ]);
-  assert.equal(fetchCalls, 0);
 });

@@ -4,21 +4,6 @@ export type UnitAlias = {
   readonly alias: string;
   readonly id: string;
   readonly locale?: VolumeLocale;
-  readonly dollar?: string;
-};
-
-/** ISO 4217 alpha-3 codes that are English words; lexer requires uppercase. */
-export const UPPERCASE_ONLY_IDS: ReadonlySet<string> = new Set(["try", "cop", "pen"]);
-
-const DOLLAR_BY_REGION: Readonly<Record<string, string>> = {
-  ca: "cad",
-  au: "aud",
-  nz: "nzd",
-  sg: "sgd",
-  hk: "hkd",
-  tw: "twd",
-  mx: "mxn",
-  br: "brl",
 };
 
 export function volumeLocale(locale: string): VolumeLocale {
@@ -29,27 +14,8 @@ export function volumeLocale(locale: string): VolumeLocale {
   return "us";
 }
 
-export function dollarCurrency(locale: string): string {
-  const parts = locale.toLowerCase().split("-");
-  for (let i = 1; i < parts.length; i++) {
-    const part = parts[i]!;
-    if (part.length === 2) {
-      return DOLLAR_BY_REGION[part] ?? "usd";
-    }
-  }
-  return "usd";
-}
-
 function rows(id: string, aliases: readonly string[], locale?: VolumeLocale): UnitAlias[] {
   return aliases.map((alias) => (locale === undefined ? { alias, id } : { alias, id, locale }));
-}
-
-function dollarRows(id: string, aliases: readonly string[]): UnitAlias[] {
-  return aliases.map((alias) => ({ alias, id, dollar: id }));
-}
-
-function iso(id: string, extra: readonly string[] = []): UnitAlias[] {
-  return rows(id, [id, ...extra]);
 }
 
 export const UNIT_ALIASES: readonly UnitAlias[] = [
@@ -134,81 +100,8 @@ export const UNIT_ALIASES: readonly UnitAlias[] = [
   ...rows("kilometre-per-hour", ["km/h", "kph", "kilometers per hour", "kilometres per hour"]),
   ...rows("mile-per-hour", ["mph", "mile per hour", "miles per hour"]),
   ...rows("knot", ["kn", "kt", "knot", "knots"]),
-
-  ...iso("usd"),
-  ...iso("eur", ["euro", "euros", "\u20ac"]),
-  ...iso("gbp", ["pound sterling", "pounds sterling", "sterling", "\u00a3"]),
-  ...iso("jpy", ["yen", "\u00a5"]),
-  ...iso("cny", ["yuan", "rmb"]),
-  ...iso("aud"),
-  ...iso("cad"),
-  ...iso("nzd"),
-  ...iso("chf"),
-  ...iso("sek"),
-  ...iso("nok"),
-  ...iso("dkk"),
-  ...iso("pln"),
-  ...iso("czk"),
-  ...iso("huf"),
-  ...iso("ron"),
-  ...iso("try"),
-  ...iso("isk"),
-  ...iso("ils"),
-  ...iso("zar"),
-  ...iso("inr", ["rupee", "rupees", "\u20b9"]),
-  ...iso("krw"),
-  ...iso("sgd"),
-  ...iso("hkd"),
-  ...iso("twd"),
-  ...iso("thb"),
-  ...iso("myr"),
-  ...iso("idr"),
-  ...iso("php"),
-  ...iso("mxn"),
-  ...iso("brl"),
-  ...iso("ars"),
-  ...iso("clp"),
-  ...iso("cop"),
-  ...iso("pen"),
-  ...iso("aed"),
-  ...iso("sar"),
-  ...iso("qar"),
-  ...iso("kwd"),
-  ...iso("bhd"),
-  ...iso("omr"),
-  ...iso("jod"),
-  ...iso("egp"),
-  ...iso("ngn"),
-  ...iso("pkr"),
-  ...iso("bdt"),
-  ...iso("vnd"),
-  ...iso("uah"),
-  ...iso("kzt"),
-
-  ...rows("usd", ["US$"]),
-  ...rows("cad", ["C$", "CA$"]),
-  ...rows("aud", ["A$", "AU$"]),
-  ...rows("nzd", ["NZ$"]),
-  ...rows("sgd", ["S$"]),
-  ...rows("hkd", ["HK$"]),
-  ...rows("twd", ["NT$"]),
-  ...rows("brl", ["R$"]),
-
-  ...dollarRows("usd", ["$", "dollar", "dollars"]),
-  ...dollarRows("cad", ["$", "dollar", "dollars"]),
-  ...dollarRows("aud", ["$", "dollar", "dollars"]),
-  ...dollarRows("nzd", ["$", "dollar", "dollars"]),
-  ...dollarRows("sgd", ["$", "dollar", "dollars"]),
-  ...dollarRows("hkd", ["$", "dollar", "dollars"]),
-  ...dollarRows("twd", ["$", "dollar", "dollars"]),
-  ...dollarRows("mxn", ["$", "dollar", "dollars"]),
-  ...dollarRows("brl", ["$", "dollar", "dollars"]),
 ];
 
-export function aliasesFor(volume: VolumeLocale, dollar: string): readonly UnitAlias[] {
-  return UNIT_ALIASES.filter(
-    (row) =>
-      (row.locale === undefined || row.locale === volume) &&
-      (row.dollar === undefined || row.dollar === dollar),
-  );
+export function aliasesFor(volume: VolumeLocale): readonly UnitAlias[] {
+  return UNIT_ALIASES.filter((row) => row.locale === undefined || row.locale === volume);
 }

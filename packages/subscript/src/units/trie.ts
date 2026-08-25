@@ -9,14 +9,8 @@ import {
 import { MAX_ALIAS_LENGTH } from "../limits.ts";
 import type { ConverterWord } from "../token.ts";
 import { ZONE_ALIASES } from "../zones/aliases.ts";
-import {
-  aliasesFor,
-  dollarCurrency,
-  UNIT_ALIASES,
-  volumeLocale,
-  type VolumeLocale,
-} from "./aliases.ts";
-import { isCurrency, type UnitDef } from "./kinds.ts";
+import { aliasesFor, UNIT_ALIASES, volumeLocale, type VolumeLocale } from "./aliases.ts";
+import type { UnitDef } from "./kinds.ts";
 import { UNITS } from "./table.ts";
 
 export type TrieValue =
@@ -79,23 +73,16 @@ function merge(existing: TrieValue | undefined, added: TrieValue): TrieValue {
 
 /** Ids whose spelling depends on the locale, so only §5 aliases may reach them. */
 const LOCALE_SCOPED_IDS = new Set(
-  UNIT_ALIASES.filter((row) => row.locale !== undefined || row.dollar !== undefined).map(
-    (row) => row.id,
-  ),
+  UNIT_ALIASES.filter((row) => row.locale !== undefined).map((row) => row.id),
 );
 
 function symbolIsTypeable(unit: UnitDef): boolean {
-  return (
-    unit.symbol !== "" &&
-    unit.affine !== "difference" &&
-    !LOCALE_SCOPED_IDS.has(unit.id) &&
-    !isCurrency(unit)
-  );
+  return unit.symbol !== "" && unit.affine !== "difference" && !LOCALE_SCOPED_IDS.has(unit.id);
 }
 
-function build(volume: VolumeLocale, dollar: string): TrieNode {
+function build(volume: VolumeLocale): TrieNode {
   const root = newNode();
-  for (const row of aliasesFor(volume, dollar)) {
+  for (const row of aliasesFor(volume)) {
     insert(root, row.alias, { kind: "unit", unitId: row.id });
   }
   for (const unit of UNITS) {
@@ -118,15 +105,13 @@ function build(volume: VolumeLocale, dollar: string): TrieNode {
 
 const tries = new Map<string, TrieNode>();
 
-/** Tries are immutable once built; keyed by volume × dollar default. */
+/** Tries are immutable once built; keyed by volume locale. */
 export function trieFor(locale: string): TrieNode {
   const volume = volumeLocale(locale);
-  const dollar = dollarCurrency(locale);
-  const key = `${volume}:${dollar}`;
-  let trie = tries.get(key);
+  let trie = tries.get(volume);
   if (trie === undefined) {
-    trie = build(volume, dollar);
-    tries.set(key, trie);
+    trie = build(volume);
+    tries.set(volume, trie);
   }
   return trie;
 }

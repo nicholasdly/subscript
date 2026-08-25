@@ -8,6 +8,6 @@ function getDefault(): Subscript {
   return defaultInstance;
 }
 
-export function evaluate(input: string): Promise<Result> {
+export function evaluate(input: string): Result {
   return getDefault().evaluate(input);
 }

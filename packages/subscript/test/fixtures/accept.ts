@@ -58,16 +58,6 @@ export const accept: Fixture[] = [
     notes: "m is metre, in is converter, ft is foot.",
   },
   {
-    name: "usd-in-eur",
-    input: "100 usd in eur",
-    expect: {
-      ok: true,
-      text: "€50.00",
-      unitId: "eur",
-      value: 50,
-    },
-  },
-  {
     name: "pst-in-tokyo",
     input: "3pm PST in Tokyo",
     now: WINTER_NOW,
@@ -76,7 +66,6 @@ export const accept: Fixture[] = [
       text: "8:00 AM JST, Jan 16",
       zoned: { timeZone: "asia-tokyo", label: "JST", hour: 8, minute: 0 },
     },
-    noFetch: true,
   },
   {
     name: "bare-number",
@@ -236,77 +225,6 @@ export const accept: Fixture[] = [
     expect: { ok: false, reason: "precision-loss" },
   },
   {
-    name: "usd-identity",
-    input: "100 usd",
-    expect: { ok: true, text: "$100.00", unitId: "usd", value: 100 },
-    noFetch: true,
-  },
-  {
-    name: "usd-in-usd",
-    input: "100 usd in usd",
-    expect: { ok: true, text: "$100.00", unitId: "usd", value: 100 },
-    noFetch: true,
-  },
-  {
-    name: "dollar-prefix",
-    input: "$100",
-    expect: { ok: true, text: "$100.00", unitId: "usd", value: 100 },
-    noFetch: true,
-  },
-  {
-    name: "dollar-locale-cad",
-    input: "$100",
-    locale: "en-CA",
-    expect: { ok: true, text: "CA$100.00", unitId: "cad", value: 100 },
-    noFetch: true,
-  },
-  {
-    name: "us-dollar-prefix",
-    input: "US$100",
-    locale: "en-CA",
-    expect: { ok: true, text: "$100.00", unitId: "usd", value: 100 },
-    noFetch: true,
-  },
-  {
-    name: "mixed-last-wins",
-    input: "$200 + €200",
-    expect: { ok: true, text: "€300.00", unitId: "eur", value: 300 },
-  },
-  {
-    name: "uppercase-try",
-    input: "100 TRY in usd",
-    expect: {
-      ok: true,
-      text: "$3.33",
-      unitId: "usd",
-      value: 100 / 30,
-      eps: 1e-12,
-    },
-  },
-  {
-    name: "quote-failed",
-    input: "100 kzt in usd",
-    expect: { ok: false, reason: "rate-unavailable" },
-  },
-  {
-    name: "pound-to-usd",
-    input: "100 pounds in usd",
-    expect: { ok: false, reason: "dimension-mismatch" },
-    noFetch: true,
-  },
-  {
-    name: "dollar-times-days",
-    input: "$30 * 4 days",
-    expect: { ok: false, reason: "unknown-unit" },
-    noFetch: true,
-  },
-  {
-    name: "usd-times-eur",
-    input: "$10 * €5",
-    expect: { ok: false, reason: "unknown-unit" },
-    noFetch: true,
-  },
-  {
     name: "pst-identity",
     input: "3pm PST in PST",
     now: WINTER_NOW,
@@ -315,7 +233,6 @@ export const accept: Fixture[] = [
       text: "3:00 PM PST",
       zoned: { timeZone: "pst", label: "PST", hour: 15, minute: 0 },
     },
-    noFetch: true,
   },
   {
     name: "now-in-tokyo",
@@ -326,7 +243,6 @@ export const accept: Fixture[] = [
       text: "3:00 AM JST, Jan 16",
       zoned: { timeZone: "asia-tokyo", label: "JST", hour: 3, minute: 0 },
     },
-    noFetch: true,
   },
   {
     name: "pdt-in-tokyo-winter",
@@ -337,7 +253,6 @@ export const accept: Fixture[] = [
       text: "7:00 AM JST, Jan 16",
       zoned: { timeZone: "asia-tokyo", label: "JST", hour: 7, minute: 0 },
     },
-    noFetch: true,
   },
   {
     name: "pt-in-tokyo-summer",
@@ -348,7 +263,6 @@ export const accept: Fixture[] = [
       text: "7:00 AM JST, Jul 16",
       zoned: { timeZone: "asia-tokyo", label: "JST", hour: 7, minute: 0 },
     },
-    noFetch: true,
   },
   {
     name: "pst-in-tokyo-summer",
@@ -359,7 +273,6 @@ export const accept: Fixture[] = [
       text: "8:00 AM JST, Jul 16",
       zoned: { timeZone: "asia-tokyo", label: "JST", hour: 8, minute: 0 },
     },
-    noFetch: true,
   },
   {
     name: "ist-india",
@@ -370,7 +283,6 @@ export const accept: Fixture[] = [
       text: "9:30 AM UTC",
       zoned: { timeZone: "utc+0000", label: "UTC", hour: 9, minute: 30 },
     },
-    noFetch: true,
   },
   {
     name: "utc-offset",
@@ -381,7 +293,6 @@ export const accept: Fixture[] = [
       text: "3:00 PM JST",
       zoned: { timeZone: "asia-tokyo", label: "JST", hour: 15, minute: 0 },
     },
-    noFetch: true,
   },
   {
     name: "literal-3-colon",
@@ -392,7 +303,6 @@ export const accept: Fixture[] = [
       text: "3:00 AM PST",
       zoned: { timeZone: "pst", label: "PST", hour: 3, minute: 0 },
     },
-    noFetch: true,
   },
   {
     name: "three-pm-space",
@@ -403,7 +313,6 @@ export const accept: Fixture[] = [
       text: "3:00 PM PST",
       zoned: { timeZone: "pst", label: "PST", hour: 15, minute: 0 },
     },
-    noFetch: true,
   },
   {
     name: "beijing-in-utc",
@@ -414,6 +323,5 @@ export const accept: Fixture[] = [
       text: "7:00 AM UTC",
       zoned: { timeZone: "utc+0000", label: "UTC", hour: 7, minute: 0 },
     },
-    noFetch: true,
   },
 ];

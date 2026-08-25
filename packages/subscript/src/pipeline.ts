@@ -6,7 +6,6 @@ import * as numeric from "./numeric.ts";
 import { parse } from "./parse.ts";
 import { add, convert, div, mul, quantity, sqrt, sub } from "./quantity.ts";
 import { enumerateReadings, readsInAsConverter } from "./rank.ts";
-import { newSession, type QuoteSession } from "./rates.ts";
 import { rewrite } from "./rewrite.ts";
 import type { Ast, Token } from "./token.ts";
 import {
@@ -22,8 +21,6 @@ import {
   type SpanKind,
 } from "./types.ts";
 import { isValidEpoch, lookupZone, retarget, toZonedTime, zoneWall, type TzEngine } from "./tz.ts";
-import { isCurrency } from "./units/kinds.ts";
-import { lookupUnit } from "./units/lookup.ts";
 import type { TrieNode } from "./units/trie.ts";
 
 export type PipelineOutput = {
@@ -51,10 +48,8 @@ function spanKind(token: Token): SpanKind {
       return "number";
     case "timezone":
       return "timezone";
-    case "unit": {
-      const def = lookupUnit(token.unitId);
-      return def !== undefined && isCurrency(def) ? "currency" : "unit";
-    }
+    case "unit":
+      return "unit";
     case "converter":
       return "converter";
     case "function":
@@ -98,7 +93,7 @@ function okZoned(value: ReturnType<typeof retarget>): Result {
   return { ok: true, value, text: "" };
 }
 
-async function evaluateAst(ast: Ast, rates: QuoteSession, ctx: EvalCtx): Promise<Result> {
+function evaluateAst(ast: Ast, ctx: EvalCtx): Result {
   switch (ast.kind) {
     case "number":
       return quantity(ast.value);
@@ -148,7 +143,7 @@ async function evaluateAst(ast: Ast, rates: QuoteSession, ctx: EvalCtx): Promise
           sourceDay: utc.getUTCDate(),
         });
       }
-      const inner = await evaluateAst(ast.expr, rates, ctx);
+      const inner = evaluateAst(ast.expr, ctx);
       if (!inner.ok) {
         return inner;
       }
@@ -158,7 +153,7 @@ async function evaluateAst(ast: Ast, rates: QuoteSession, ctx: EvalCtx): Promise
       return okZoned(retarget(inner.value, toZone));
     }
     case "unary": {
-      const inner = await evaluateAst(ast.inner, rates, ctx);
+      const inner = evaluateAst(ast.inner, ctx);
       if (!inner.ok) {
         return inner;
       }
@@ -168,7 +163,7 @@ async function evaluateAst(ast: Ast, rates: QuoteSession, ctx: EvalCtx): Promise
       return quantity(-inner.value.value, inner.value.unit.id);
     }
     case "sqrt": {
-      const inner = await evaluateAst(ast.inner, rates, ctx);
+      const inner = evaluateAst(ast.inner, ctx);
       if (!inner.ok) {
         return inner;
       }
@@ -178,21 +173,21 @@ async function evaluateAst(ast: Ast, rates: QuoteSession, ctx: EvalCtx): Promise
       return sqrt(inner.value);
     }
     case "convert": {
-      const inner = await evaluateAst(ast.expr, rates, ctx);
+      const inner = evaluateAst(ast.expr, ctx);
       if (!inner.ok) {
         return inner;
       }
       if (isZonedTime(inner.value)) {
         return notAnExpression();
       }
-      return convert(inner.value, ast.toId, rates);
+      return convert(inner.value, ast.toId);
     }
     case "binary": {
-      const left = await evaluateAst(ast.left, rates, ctx);
+      const left = evaluateAst(ast.left, ctx);
       if (!left.ok) {
         return left;
       }
-      const right = await evaluateAst(ast.right, rates, ctx);
+      const right = evaluateAst(ast.right, ctx);
       if (!right.ok) {
         return right;
       }
@@ -201,13 +196,13 @@ async function evaluateAst(ast: Ast, rates: QuoteSession, ctx: EvalCtx): Promise
       }
       switch (ast.op) {
         case "+":
-          return add(left.value, right.value, rates);
+          return add(left.value, right.value);
         case "-":
-          return sub(left.value, right.value, rates);
+          return sub(left.value, right.value);
         case "*":
           return mul(left.value, right.value);
         case "/":
-          return div(left.value, right.value, rates);
+          return div(left.value, right.value);
         case "^":
           return power(left.value, right.value);
       }
@@ -258,15 +253,14 @@ function withFormat(
   return { ...result, text: format(result.value) };
 }
 
-export async function runPipeline(
+export function runPipeline(
   input: string,
   trie: TrieNode,
   format: Formatter,
-  fetchFn: typeof globalThis.fetch,
   now: NowFn,
   ambiguousClock: AmbiguousClock,
   engine: TzEngine,
-): Promise<PipelineOutput> {
+): PipelineOutput {
   if (input.length > INPUT_LENGTH_LIMIT) {
     return { result: limitExceeded("input-length"), spans: [] };
   }
@@ -276,14 +270,13 @@ export async function runPipeline(
     return nothing();
   }
 
-  const rates = newSession(fetchFn);
   const ctx: EvalCtx = { instant: now(), engine };
   const evaluated: Reading[] = [];
   for (const reading of readings) {
     const tokens = rewrite(reading);
     const parsed = parse(tokens);
     if (parsed.ok) {
-      evaluated.push({ result: await evaluateAst(parsed.ast, rates, ctx), tokens });
+      evaluated.push({ result: evaluateAst(parsed.ast, ctx), tokens });
     } else if (parsed.limit !== undefined) {
       evaluated.push({ result: limitExceeded(parsed.limit), tokens });
     }
@@ -321,7 +314,7 @@ function isUnitless(ast: Ast): boolean {
   }
 }
 
-/** Parse and rank without evaluating, so coloring never quotes Frankfurter. */
+/** Parse and rank without evaluating, so coloring stays cheap. */
 export function spansForInput(
   input: string,
   trie: TrieNode,

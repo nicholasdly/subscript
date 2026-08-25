@@ -3,7 +3,6 @@ import { test } from "node:test";
 
 import { createSubscript, isZonedTime, type Result } from "../src/index.ts";
 import { toWall } from "../src/tz.ts";
-import { fetchCalls, resetFetchCalls, stubFetch } from "./fetch-stub.ts";
 import { accept } from "./fixtures/accept.ts";
 import { reject } from "./fixtures/reject.ts";
 import { REFERENCE_INSTANT, type Fixture } from "./fixtures/types.ts";
@@ -13,8 +12,6 @@ const FAILURE_KINDS = new Set([
   "dimension-mismatch",
   "unknown-unit",
   "ambiguous",
-  "rate-unavailable",
-  "rate-pending",
   "precision-loss",
   "limit-exceeded",
 ]);
@@ -80,22 +77,17 @@ function assertExpect(result: Result, expect: Fixture["expect"]): void {
 }
 
 for (const fixture of fixtures) {
-  test(fixture.name, async (t) => {
-    resetFetchCalls();
+  test(fixture.name, (t) => {
     const subscript = createSubscript({
       locale: fixture.locale ?? "en-US",
       now: () => fixture.now ?? REFERENCE_INSTANT,
-      fetch: stubFetch,
     });
-    const result = await subscript.evaluate(fixture.input);
+    const result = subscript.evaluate(fixture.input);
     assertWellFormed(result);
     if (fixture.todo) {
       t.todo();
       return;
     }
     assertExpect(result, fixture.expect);
-    if (fixture.noFetch) {
-      assert.equal(fetchCalls, 0, "did not expect a Frankfurter call");
-    }
   });
 }

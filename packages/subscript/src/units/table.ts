@@ -1,7 +1,6 @@
 import * as numeric from "../numeric.ts";
 import {
   AREA,
-  CURRENCY,
   LENGTH,
   MASS,
   NONE,
@@ -73,74 +72,6 @@ export const DIMENSIONLESS: UnitDef = linear({
     notes: "dimensionless one",
   },
 });
-
-const ISO_4217 = {
-  citation: "ISO 4217 / SIX List One",
-  url: "https://www.six-group.com/en/products-services/financial-information/market-reference-data/data-standards.html",
-};
-
-function currency(id: string, symbol: string): UnitDef {
-  return linear({
-    id,
-    symbol,
-    dimension: CURRENCY,
-    scale: 1,
-    source: ISO_4217,
-  });
-}
-
-/** Closed parse catalog. Quote coverage is Frankfurter's, not this list. */
-const CURRENCIES: readonly UnitDef[] = [
-  currency("usd", "$"),
-  currency("eur", "\u20ac"),
-  currency("gbp", "\u00a3"),
-  currency("jpy", "\u00a5"),
-  currency("cny", "CN\u00a5"),
-  currency("aud", "A$"),
-  currency("cad", "CA$"),
-  currency("nzd", "NZ$"),
-  currency("chf", "CHF"),
-  currency("sek", "kr"),
-  currency("nok", "kr"),
-  currency("dkk", "kr"),
-  currency("pln", "z\u0142"),
-  currency("czk", "K\u010d"),
-  currency("huf", "Ft"),
-  currency("ron", "lei"),
-  currency("try", "\u20ba"),
-  currency("isk", "kr"),
-  currency("ils", "\u20aa"),
-  currency("zar", "R"),
-  currency("inr", "\u20b9"),
-  currency("krw", "\u20a9"),
-  currency("sgd", "S$"),
-  currency("hkd", "HK$"),
-  currency("twd", "NT$"),
-  currency("thb", "\u0e3f"),
-  currency("myr", "RM"),
-  currency("idr", "Rp"),
-  currency("php", "\u20b1"),
-  currency("mxn", "MX$"),
-  currency("brl", "R$"),
-  currency("ars", "AR$"),
-  currency("clp", "CLP"),
-  currency("cop", "COP"),
-  currency("pen", "S/"),
-  currency("aed", "AED"),
-  currency("sar", "SAR"),
-  currency("qar", "QR"),
-  currency("kwd", "KD"),
-  currency("bhd", "BD"),
-  currency("omr", "OMR"),
-  currency("jod", "JD"),
-  currency("egp", "E\u00a3"),
-  currency("ngn", "\u20a6"),
-  currency("pkr", "Rs"),
-  currency("bdt", "\u09f3"),
-  currency("vnd", "\u20ab"),
-  currency("uah", "\u20b4"),
-  currency("kzt", "\u20b8"),
-];
 
 export const UNITS: readonly UnitDef[] = [
   DIMENSIONLESS,
@@ -515,6 +446,4 @@ export const UNITS: readonly UnitDef[] = [
     scale: numeric.div(NAUTICAL_MILE_M, 3600),
     source: { ...SI_BROCHURE, notes: "nautical mile / hour = 1852 m / 3600 s" },
   }),
-
-  ...CURRENCIES,
 ];

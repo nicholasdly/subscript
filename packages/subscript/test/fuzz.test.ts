@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { createSubscript, type Result } from "../src/index.ts";
-import { stubFetch } from "./fetch-stub.ts";
 
 const SEED = 0x51b5c210;
 const ALPHABET =
@@ -21,8 +20,6 @@ const FAILURE_KINDS = new Set([
   "dimension-mismatch",
   "unknown-unit",
   "ambiguous",
-  "rate-unavailable",
-  "rate-pending",
   "precision-loss",
   "limit-exceeded",
 ]);
@@ -40,8 +37,8 @@ function assertWellFormed(result: Result): void {
   }
 }
 
-test("seeded random strings never throw and always return a Result", async () => {
-  const subscript = createSubscript({ fetch: stubFetch });
+test("seeded random strings never throw and always return a Result", () => {
+  const subscript = createSubscript();
   const started = Date.now();
   const next = lcg(SEED);
   for (let n = 0; n < 1000; n++) {
@@ -50,7 +47,7 @@ test("seeded random strings never throw and always return a Result", async () =>
     for (let i = 0; i < length; i++) {
       input += ALPHABET.charAt(next() % ALPHABET.length);
     }
-    const result = await subscript.evaluate(input);
+    const result = subscript.evaluate(input);
     assertWellFormed(result);
   }
   assert.ok(Date.now() - started < 5000, "fuzz exceeded 5s");

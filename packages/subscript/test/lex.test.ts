@@ -122,27 +122,6 @@ test("1e309 is still a number token, non-finite", () => {
   }
 });
 
-test("English-word ISO codes require capitals", () => {
-  for (const code of ["TRY", "PEN"]) {
-    const upper = tokens(`100 ${code}`);
-    assert.equal(upper[1]?.kind, "unit");
-    if (upper[1]?.kind === "unit") {
-      assert.equal(upper[1].unitId, code.toLowerCase());
-    }
-    const lower = tokens(`100 ${code.toLowerCase()}`);
-    assert.equal(lower[1]?.kind, "unknown");
-  }
-});
-
-test("$100 is unit then number before rewrite", () => {
-  const result = tokens("$100");
-  assert.equal(result[0]?.kind, "unit");
-  if (result[0]?.kind === "unit") {
-    assert.equal(result[0].unitId, "usd");
-  }
-  assert.equal(result[1]?.kind, "number");
-});
-
 test("3pm is a clock token", () => {
   const result = tokens("3pm");
   assert.equal(result.length, 1);

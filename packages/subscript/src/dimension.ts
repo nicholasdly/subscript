@@ -8,7 +8,6 @@ export type Dimension = readonly [
   Rational, // Θ — kelvin
   Rational, // N — mole
   Rational, // J — candela
-  Rational, // C — currency (not SI)
 ];
 
 export type DimensionExponents = {
@@ -19,7 +18,6 @@ export type DimensionExponents = {
   readonly Θ?: Rational;
   readonly N?: Rational;
   readonly J?: Rational;
-  readonly C?: Rational;
 };
 
 function gcd(a: number, b: number): number {
@@ -72,7 +70,6 @@ export function dimension(exponents: DimensionExponents = {}): Dimension {
     exponents.Θ ?? ZERO,
     exponents.N ?? ZERO,
     exponents.J ?? ZERO,
-    exponents.C ?? ZERO,
   ];
 }
 
@@ -84,8 +81,7 @@ export function dimensionsEqual(a: Dimension, b: Dimension): boolean {
     rationalsEqual(a[3], b[3]) &&
     rationalsEqual(a[4], b[4]) &&
     rationalsEqual(a[5], b[5]) &&
-    rationalsEqual(a[6], b[6]) &&
-    rationalsEqual(a[7], b[7])
+    rationalsEqual(a[6], b[6])
   );
 }
 
@@ -102,7 +98,6 @@ export function mulDimensions(a: Dimension, b: Dimension): Dimension {
     addRationals(a[4], b[4]),
     addRationals(a[5], b[5]),
     addRationals(a[6], b[6]),
-    addRationals(a[7], b[7]),
   ];
 }
 
@@ -115,7 +110,6 @@ export function divDimensions(a: Dimension, b: Dimension): Dimension {
     subRationals(a[4], b[4]),
     subRationals(a[5], b[5]),
     subRationals(a[6], b[6]),
-    subRationals(a[7], b[7]),
   ];
 }
 
@@ -128,6 +122,5 @@ export function scaleDimension(dim: Dimension, factor: Rational): Dimension {
     mulRationals(dim[4], factor),
     mulRationals(dim[5], factor),
     mulRationals(dim[6], factor),
-    mulRationals(dim[7], factor),
   ];
 }

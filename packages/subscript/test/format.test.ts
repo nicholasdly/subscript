@@ -56,27 +56,6 @@ test("negative zero prints as 0", () => {
   assert.equal(formatQuantity(q(-0, "1", "")), "0");
 });
 
-test("usd uses currency style, not six sig figs", () => {
-  assert.equal(formatQuantity(q(1, "usd", "$")), "$1.00");
-  assert.equal(formatQuantity(q(1.5, "usd", "$")), "$1.50");
-});
-
-test("jpy has no minor unit", () => {
-  assert.equal(formatQuantity(q(1, "jpy", "¥")), "¥1");
-});
-
-test("compact thousand on money uses k", () => {
-  assert.equal(formatQuantity(q(1500, "usd", "$")), "$1.5k");
-});
-
-test("compact off prints money with fraction digits", () => {
-  assert.equal(formatQuantity(q(1500, "usd", "$"), { compact: false }), "$1500.00");
-});
-
-test("compact billion on money uses B not G", () => {
-  assert.equal(formatQuantity(q(1e9, "usd", "$")), "$1B");
-});
-
 test("zoned time prints 12-hour clock, label, and rollover date", () => {
   const format = createFormatter();
   const sameDay: ZonedTime = {

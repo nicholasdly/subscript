@@ -9,9 +9,8 @@ import {
 } from "./dimension.ts";
 import { formatQuantity } from "./format.ts";
 import * as numeric from "./numeric.ts";
-import { newSession, quotePair, type QuoteSession } from "./rates.ts";
 import type { Quantity, Result } from "./types.ts";
-import { isCurrency, type UnitDef } from "./units/kinds.ts";
+import type { UnitDef } from "./units/kinds.ts";
 import { findResultUnit, lookupUnit, toPublic } from "./units/lookup.ts";
 import { DIMENSIONLESS } from "./units/table.ts";
 
@@ -68,34 +67,12 @@ function withUnit(qty: Quantity, compute: (def: UnitDef) => Result): Result {
   return compute(def);
 }
 
-async function withUnitAsync(
-  qty: Quantity,
-  compute: (def: UnitDef) => Result | Promise<Result>,
-): Promise<Result> {
-  const def = lookupUnit(qty.unit.id);
-  if (def === undefined) {
-    return unknownUnit(qty.unit.id);
-  }
-  if (!numeric.isFiniteNumber(qty.value)) {
-    return precisionLoss();
-  }
-  return compute(def);
-}
-
 function withUnits(
   a: Quantity,
   b: Quantity,
   compute: (aDef: UnitDef, bDef: UnitDef) => Result,
 ): Result {
   return withUnit(a, (aDef) => withUnit(b, (bDef) => compute(aDef, bDef)));
-}
-
-async function withUnitsAsync(
-  a: Quantity,
-  b: Quantity,
-  compute: (aDef: UnitDef, bDef: UnitDef) => Result | Promise<Result>,
-): Promise<Result> {
-  return withUnitAsync(a, (aDef) => withUnitAsync(b, (bDef) => compute(aDef, bDef)));
 }
 
 /**
@@ -133,25 +110,11 @@ function convertible(from: UnitDef, to: UnitDef): boolean {
   return !absoluteToInterval && !intervalToAbsolute;
 }
 
-export function convert(
-  qty: Quantity,
-  toId: string,
-  rates: QuoteSession = newSession(),
-): Promise<Result> {
-  return withUnitAsync(qty, async (from) => {
+export function convert(qty: Quantity, toId: string): Result {
+  return withUnit(qty, (from) => {
     const to = lookupUnit(toId);
     if (to === undefined) {
       return unknownUnit(toId);
-    }
-    if (isCurrency(from) && isCurrency(to)) {
-      if (from.id === to.id) {
-        return ok(qty.value, to);
-      }
-      const quoted = await quotePair(from.id, to.id, rates.fetch, rates.memo);
-      if (!quoted.ok) {
-        return quoted;
-      }
-      return ok(numeric.mul(qty.value, quoted.factor), to);
     }
     if (!dimensionsEqual(from.dimension, to.dimension) || !convertible(from, to)) {
       return mismatch(from, to);
@@ -160,23 +123,13 @@ export function convert(
   });
 }
 
-export function add(a: Quantity, b: Quantity, rates: QuoteSession = newSession()): Promise<Result> {
-  return withUnitsAsync(a, b, async (aDef, bDef) => {
+export function add(a: Quantity, b: Quantity): Result {
+  return withUnits(a, b, (aDef, bDef) => {
     if (isDimensionless(bDef.dimension)) {
       return fromOutcome(numeric.addChecked(a.value, b.value), aDef);
     }
     if (isDimensionless(aDef.dimension)) {
       return fromOutcome(numeric.addChecked(b.value, a.value), bDef);
-    }
-    if (isCurrency(aDef) && isCurrency(bDef)) {
-      if (aDef.id === bDef.id) {
-        return fromOutcome(numeric.addChecked(a.value, b.value), aDef);
-      }
-      const quoted = await quotePair(aDef.id, bDef.id, rates.fetch, rates.memo);
-      if (!quoted.ok) {
-        return quoted;
-      }
-      return fromOutcome(numeric.addChecked(numeric.mul(a.value, quoted.factor), b.value), bDef);
     }
     if (!dimensionsEqual(aDef.dimension, bDef.dimension)) {
       return mismatch(aDef, bDef);
@@ -199,8 +152,8 @@ function intervalUnit(def: UnitDef): UnitDef | undefined {
   return def.differenceId === undefined ? undefined : lookupUnit(def.differenceId);
 }
 
-export function sub(a: Quantity, b: Quantity, rates: QuoteSession = newSession()): Promise<Result> {
-  return withUnitsAsync(a, b, async (aDef, bDef) => {
+export function sub(a: Quantity, b: Quantity): Result {
+  return withUnits(a, b, (aDef, bDef) => {
     if (isDimensionless(bDef.dimension)) {
       return fromOutcome(numeric.subChecked(a.value, b.value), aDef);
     }
@@ -208,16 +161,6 @@ export function sub(a: Quantity, b: Quantity, rates: QuoteSession = newSession()
       return bDef.affine === "absolute"
         ? mismatch(aDef, bDef)
         : fromOutcome(numeric.subChecked(a.value, b.value), bDef);
-    }
-    if (isCurrency(aDef) && isCurrency(bDef)) {
-      if (aDef.id === bDef.id) {
-        return fromOutcome(numeric.subChecked(a.value, b.value), aDef);
-      }
-      const quoted = await quotePair(aDef.id, bDef.id, rates.fetch, rates.memo);
-      if (!quoted.ok) {
-        return quoted;
-      }
-      return fromOutcome(numeric.subChecked(numeric.mul(a.value, quoted.factor), b.value), bDef);
     }
     if (!dimensionsEqual(aDef.dimension, bDef.dimension)) {
       return mismatch(aDef, bDef);
@@ -259,23 +202,13 @@ export function mul(a: Quantity, b: Quantity): Result {
   });
 }
 
-export function div(a: Quantity, b: Quantity, rates: QuoteSession = newSession()): Promise<Result> {
-  return withUnitsAsync(a, b, async (aDef, bDef) => {
+export function div(a: Quantity, b: Quantity): Result {
+  return withUnits(a, b, (aDef, bDef) => {
     if (aDef.affine === "absolute" || bDef.affine === "absolute") {
       return mismatch(aDef, bDef);
     }
     if (isDimensionless(bDef.dimension)) {
       return ok(numeric.div(a.value, b.value), aDef);
-    }
-    if (isCurrency(aDef) && isCurrency(bDef)) {
-      if (aDef.id === bDef.id) {
-        return ok(numeric.div(a.value, b.value), DIMENSIONLESS);
-      }
-      const quoted = await quotePair(bDef.id, aDef.id, rates.fetch, rates.memo);
-      if (!quoted.ok) {
-        return quoted;
-      }
-      return ok(numeric.div(a.value, numeric.mul(b.value, quoted.factor)), DIMENSIONLESS);
     }
     return derived(
       numeric.div(toSI(a.value, aDef), toSI(b.value, bDef)),

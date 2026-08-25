@@ -46,7 +46,6 @@ export type Alternate = {
 export type SpanKind =
   | "number"
   | "unit"
-  | "currency"
   | "timezone"
   | "operator"
   | "converter"
@@ -68,8 +67,6 @@ export type Failure =
       readonly token: string;
       readonly candidates: readonly Candidate[];
     }
-  | { readonly kind: "rate-unavailable"; readonly currency: string }
-  | { readonly kind: "rate-pending"; readonly currency: string }
   | { readonly kind: "precision-loss" }
   | { readonly kind: "limit-exceeded"; readonly limit: LimitName };
 
