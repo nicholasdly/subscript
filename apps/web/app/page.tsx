@@ -1,6 +1,6 @@
 "use client";
 
-import { evaluate } from "@repo/subscript";
+import { evaluate } from "@nicholasdly/subscript";
 import { useState } from "react";
 
 import { Input } from "@/components/ui/input";

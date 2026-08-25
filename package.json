@@ -11,14 +11,17 @@
     "lint": "oxlint .",
     "format": "oxfmt .",
     "typecheck": "turbo run typecheck",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "changeset": "changeset",
+    "publish-packages": "turbo run typecheck lint format build test && changeset version && changeset publish"
   },
   "devDependencies": {
+    "@changesets/cli": "^3.0.1",
     "oxfmt": "^0.65.0",
     "oxlint": "^1.80.0",
     "prettier": "3.9.6",
     "turbo": "^2.10.11",
-    "typescript": "7.0.2"
+    "typescript": "^6.0.3"
   },
   "devEngines": {
     "packageManager": {
