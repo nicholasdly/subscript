@@ -1,0 +1,327 @@
+import { SUMMER_NOW, WINTER_NOW, type Fixture } from "./types.ts";
+
+export const accept: Fixture[] = [
+  {
+    name: "temp-c-to-f",
+    input: "20 c to f",
+    expect: {
+      ok: true,
+      text: "68 °F",
+      unitId: "fahrenheit",
+      value: 68,
+      eps: 1e-12,
+    },
+  },
+  {
+    name: "arith-km-to-miles",
+    input: "(2 + 3) * 4 km in miles",
+    expect: {
+      ok: true,
+      text: "12.4274 mi",
+      unitId: "mile",
+      value: 20 / 1.609344,
+      eps: 1e-9,
+    },
+  },
+  {
+    name: "mixed-ft-in-cm",
+    input: "5 ft 11 in cm",
+    expect: {
+      ok: true,
+      text: "180.34 cm",
+      unitId: "centimetre",
+      value: 180.34,
+      eps: 1e-9,
+    },
+  },
+  {
+    name: "lex-min-not-m",
+    input: "1 min",
+    expect: {
+      ok: true,
+      text: "1 min",
+      unitId: "minute",
+      value: 1,
+    },
+    notes: "min is minute, not metre.",
+  },
+  {
+    name: "lex-m-in-ft",
+    input: "1 m in ft",
+    expect: {
+      ok: true,
+      text: "3.28084 ft",
+      unitId: "foot",
+      value: 1 / 0.3048,
+      eps: 1e-9,
+    },
+    notes: "m is metre, in is converter, ft is foot.",
+  },
+  {
+    name: "pst-in-tokyo",
+    input: "3pm PST in Tokyo",
+    now: WINTER_NOW,
+    expect: {
+      ok: true,
+      text: "8:00 AM JST, Jan 16",
+      zoned: { timeZone: "asia-tokyo", label: "JST", hour: 8, minute: 0 },
+    },
+  },
+  {
+    name: "bare-number",
+    input: "20",
+    expect: { ok: true, text: "20", unitId: "1", value: 20 },
+  },
+  {
+    name: "two-plus-two",
+    input: "2 + 2",
+    expect: { ok: true, text: "4", unitId: "1", value: 4 },
+  },
+  {
+    name: "glued-km",
+    input: "2km",
+    expect: { ok: true, text: "2 km", unitId: "kilometre", value: 2 },
+  },
+  {
+    name: "arrow-c-to-f",
+    input: "20 c \u2192 f",
+    expect: {
+      ok: true,
+      text: "68 °F",
+      unitId: "fahrenheit",
+      value: 68,
+      eps: 1e-12,
+    },
+  },
+  {
+    name: "as-converter",
+    input: "20 c as f",
+    expect: {
+      ok: true,
+      text: "68 °F",
+      unitId: "fahrenheit",
+      value: 68,
+      eps: 1e-12,
+    },
+  },
+  {
+    name: "m-times-m",
+    input: "10 m * 10 m",
+    expect: {
+      ok: true,
+      text: "100 m\u00b2",
+      unitId: "metre-squared",
+      value: 100,
+    },
+  },
+  {
+    name: "km-plus-m",
+    input: "1 km + 1000 m",
+    expect: {
+      ok: true,
+      text: "2 km",
+      unitId: "kilometre",
+      value: 2,
+    },
+  },
+  {
+    name: "abs-plus-abs-nl",
+    input: "20 c + 5 c",
+    expect: { ok: false, reason: "dimension-mismatch" },
+  },
+  {
+    name: "kg-times-l-nl",
+    input: "3 kg * 3 L",
+    expect: { ok: false, reason: "unknown-unit" },
+  },
+  {
+    name: "c-to-kg",
+    input: "20 c to kg",
+    expect: { ok: false, reason: "dimension-mismatch" },
+  },
+  {
+    name: "gallon-us",
+    input: "1 gallon to litre",
+    expect: {
+      ok: true,
+      text: "3.78541 L",
+      unitId: "litre",
+      value: 3.785411784,
+      eps: 1e-12,
+    },
+  },
+  {
+    name: "gallon-gb",
+    input: "1 gallon to litre",
+    locale: "en-GB",
+    expect: {
+      ok: true,
+      text: "4.54609 L",
+      unitId: "litre",
+      value: 4.54609,
+    },
+  },
+  {
+    name: "oz-is-mass",
+    input: "1 oz to g",
+    expect: {
+      ok: true,
+      text: "28.3495 g",
+      unitId: "gram",
+      value: (0.45359237 / 16) * 1000,
+    },
+  },
+  {
+    name: "sqrt-four",
+    input: "sqrt(4)",
+    expect: { ok: true, text: "2", unitId: "1", value: 2 },
+  },
+  {
+    name: "unary-minus",
+    input: "-5 + 3",
+    expect: { ok: true, text: "-2", unitId: "1", value: -2 },
+  },
+  {
+    name: "negative-celsius",
+    input: "-20 c to f",
+    expect: {
+      ok: true,
+      text: "-4 °F",
+      unitId: "fahrenheit",
+      value: -4,
+      eps: 1e-12,
+    },
+    notes: "Unary minus negates the literal; an absolute temperature can be negative.",
+  },
+  {
+    name: "sci-thousand",
+    input: "1e3",
+    expect: { ok: true, text: "1k", unitId: "1", value: 1000 },
+  },
+  {
+    name: "compact-sum",
+    input: "100000 + 200000",
+    expect: { ok: true, text: "300k", unitId: "1", value: 300000 },
+  },
+  {
+    name: "near-zero-sqrt",
+    input: "sqrt(2) - 2^0.5",
+    expect: { ok: true, text: "0", unitId: "1", value: 0 },
+  },
+  {
+    name: "precision-loss-add",
+    input: "1e100 + 1 - 1e100",
+    expect: { ok: false, reason: "precision-loss" },
+  },
+  {
+    name: "glued-kelvin",
+    input: "2.5k",
+    expect: { ok: true, text: "2.5 K", unitId: "kelvin", value: 2.5 },
+    notes: "k is kelvin. Compact 2.5k is display-only and is not this input.",
+  },
+  {
+    name: "overflow-exponent",
+    input: "1e309",
+    expect: { ok: false, reason: "precision-loss" },
+  },
+  {
+    name: "pst-identity",
+    input: "3pm PST in PST",
+    now: WINTER_NOW,
+    expect: {
+      ok: true,
+      text: "3:00 PM PST",
+      zoned: { timeZone: "pst", label: "PST", hour: 15, minute: 0 },
+    },
+  },
+  {
+    name: "now-in-tokyo",
+    input: "now in Tokyo",
+    now: WINTER_NOW,
+    expect: {
+      ok: true,
+      text: "3:00 AM JST, Jan 16",
+      zoned: { timeZone: "asia-tokyo", label: "JST", hour: 3, minute: 0 },
+    },
+  },
+  {
+    name: "pdt-in-tokyo-winter",
+    input: "3pm PDT in Tokyo",
+    now: WINTER_NOW,
+    expect: {
+      ok: true,
+      text: "7:00 AM JST, Jan 16",
+      zoned: { timeZone: "asia-tokyo", label: "JST", hour: 7, minute: 0 },
+    },
+  },
+  {
+    name: "pt-in-tokyo-summer",
+    input: "3pm pacific time in Tokyo",
+    now: SUMMER_NOW,
+    expect: {
+      ok: true,
+      text: "7:00 AM JST, Jul 16",
+      zoned: { timeZone: "asia-tokyo", label: "JST", hour: 7, minute: 0 },
+    },
+  },
+  {
+    name: "pst-in-tokyo-summer",
+    input: "3pm PST in Tokyo",
+    now: SUMMER_NOW,
+    expect: {
+      ok: true,
+      text: "8:00 AM JST, Jul 16",
+      zoned: { timeZone: "asia-tokyo", label: "JST", hour: 8, minute: 0 },
+    },
+  },
+  {
+    name: "ist-india",
+    input: "3pm IST in UTC",
+    now: WINTER_NOW,
+    expect: {
+      ok: true,
+      text: "9:30 AM UTC",
+      zoned: { timeZone: "utc+0000", label: "UTC", hour: 9, minute: 30 },
+    },
+  },
+  {
+    name: "utc-offset",
+    input: "3pm GMT+9 in Tokyo",
+    now: WINTER_NOW,
+    expect: {
+      ok: true,
+      text: "3:00 PM JST",
+      zoned: { timeZone: "asia-tokyo", label: "JST", hour: 15, minute: 0 },
+    },
+  },
+  {
+    name: "literal-3-colon",
+    input: "3:00 PST in PST",
+    now: WINTER_NOW,
+    expect: {
+      ok: true,
+      text: "3:00 AM PST",
+      zoned: { timeZone: "pst", label: "PST", hour: 3, minute: 0 },
+    },
+  },
+  {
+    name: "three-pm-space",
+    input: "3 pm PST in PST",
+    now: WINTER_NOW,
+    expect: {
+      ok: true,
+      text: "3:00 PM PST",
+      zoned: { timeZone: "pst", label: "PST", hour: 15, minute: 0 },
+    },
+  },
+  {
+    name: "beijing-in-utc",
+    input: "3pm beijing in utc",
+    now: WINTER_NOW,
+    expect: {
+      ok: true,
+      text: "7:00 AM UTC",
+      zoned: { timeZone: "utc+0000", label: "UTC", hour: 7, minute: 0 },
+    },
+  },
+];
