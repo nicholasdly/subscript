@@ -21,17 +21,17 @@ is a minute and `1 m in ft` is metres-to-feet; every reject fixture is still
 
 ## 0. Current state
 
-| Item            | Today                                                                                         |
-| --------------- | --------------------------------------------------------------------------------------------- |
-| Public API      | `evaluate`, `createSubscript`, `quantity` / `convert` / `add` / `sub` / `mul` / `div` / `sqrt` |
-| `evaluate`      | always `{ ok: false, reason: { kind: "not-an-expression" } }`, never throws                   |
-| `spans`         | always `[]`                                                                                   |
-| `Quantity`      | `{ value, unit }`; no `offset` field; affine kind lives on the internal unit record           |
-| Unit table      | length, mass, time, temperature, area, volume, speed; canonical SI ids; no aliases            |
-| NL fixtures     | reject cases assert; accept cases are `todo: true`                                            |
-| `api.test.ts`   | asserts every seed input, including future accepts, is `not-an-expression`                    |
-| Runtime deps    | zero (keep it that way)                                                                       |
-| Provenance      | M0 and M1 logged                                                                              |
+| Item          | Today                                                                                          |
+| ------------- | ---------------------------------------------------------------------------------------------- |
+| Public API    | `evaluate`, `createSubscript`, `quantity` / `convert` / `add` / `sub` / `mul` / `div` / `sqrt` |
+| `evaluate`    | always `{ ok: false, reason: { kind: "not-an-expression" } }`, never throws                    |
+| `spans`       | always `[]`                                                                                    |
+| `Quantity`    | `{ value, unit }`; no `offset` field; affine kind lives on the internal unit record            |
+| Unit table    | length, mass, time, temperature, area, volume, speed; canonical SI ids; no aliases             |
+| NL fixtures   | reject cases assert; accept cases are `todo: true`                                             |
+| `api.test.ts` | asserts every seed input, including future accepts, is `not-an-expression`                     |
+| Runtime deps  | zero (keep it that way)                                                                        |
+| Provenance    | M0 and M1 logged                                                                               |
 
 Treat as given, from [`docs/provenance.md`](../provenance.md):
 
@@ -84,14 +84,14 @@ wrong dimension is information, a failed parse is not.
 
 Documented default: **`in` is a converter**. Inch is the fallback.
 
-| Input             | Converter reading              | Inch reading                         | Winner    |
-| ----------------- | ------------------------------ | ------------------------------------ | --------- |
-| `1 m in ft`       | convert metre → foot           | `1 × m × in × ft` does not parse     | converter |
-| `1 min`           | n/a (`min` is not `in`)        | n/a                                  | minute    |
-| `5 ft 11 in`      | `11` with no target            | `5 ft + 11 in` after rewrite         | inch      |
-| `5 ft 11 in cm`   | `11` with no target before `cm`| mixed length, then bare target `cm`  | inch      |
-| `11 in`           | `11` with no target            | 11 inches                            | inch      |
-| `11 in cm`        | convert inch → centimetre      | `11 in` then leftover `cm` as target | converter if both succeed — see below |
+| Input           | Converter reading               | Inch reading                         | Winner                                |
+| --------------- | ------------------------------- | ------------------------------------ | ------------------------------------- |
+| `1 m in ft`     | convert metre → foot            | `1 × m × in × ft` does not parse     | converter                             |
+| `1 min`         | n/a (`min` is not `in`)         | n/a                                  | minute                                |
+| `5 ft 11 in`    | `11` with no target             | `5 ft + 11 in` after rewrite         | inch                                  |
+| `5 ft 11 in cm` | `11` with no target before `cm` | mixed length, then bare target `cm`  | inch                                  |
+| `11 in`         | `11` with no target             | 11 inches                            | inch                                  |
+| `11 in cm`      | convert inch → centimetre       | `11 in` then leftover `cm` as target | converter if both succeed — see below |
 
 When **both** readings consume the input and evaluate:
 
@@ -107,10 +107,10 @@ When **both** readings consume the input and evaluate:
 
 M1 ids stay unambiguous. Aliases are where locale matters.
 
-| Locale prefix | `gallon` / `gal` / `gallons` | `fl oz` / `fluid ounce` |
-| ------------- | ---------------------------- | ----------------------- |
-| `en-GB`       | `imperial-gallon`            | `imperial-fluid-ounce`  |
-| everything else, including `en-US` and the default | `us-gallon` | `us-fluid-ounce` |
+| Locale prefix                                      | `gallon` / `gal` / `gallons` | `fl oz` / `fluid ounce` |
+| -------------------------------------------------- | ---------------------------- | ----------------------- |
+| `en-GB`                                            | `imperial-gallon`            | `imperial-fluid-ounce`  |
+| everything else, including `en-US` and the default | `us-gallon`                  | `us-fluid-ounce`        |
 
 Match on the BCP 47 language-region prefix, case-insensitive: `en-GB`, `en-GB-oxendict`
 both imperial; `en`, `en-US`, `en-AU`, `de-DE` all US. Australia using US gallons is
@@ -234,11 +234,11 @@ in M2. Keep `text` on the row as the M3 target; assert `text` only when
 `plan.md` §5.6. No `eval`, no `new Function`, no `new Function`-shaped code generation,
 anywhere, ever. Caps:
 
-| `LimitName`    | Budget | Applied |
-| -------------- | ------ | ------- |
-| `input-length` | 256 code units of the raw input | before normalize |
-| `parse-depth`  | 32     | Pratt recursion / paren depth |
-| `node-count`   | 64 AST nodes | increment on every node; fail when exceeded |
+| `LimitName`    | Budget                          | Applied                                     |
+| -------------- | ------------------------------- | ------------------------------------------- |
+| `input-length` | 256 code units of the raw input | before normalize                            |
+| `parse-depth`  | 32                              | Pratt recursion / paren depth               |
+| `node-count`   | 64 AST nodes                    | increment on every node; fail when exceeded |
 
 Over budget → `{ ok: false, reason: { kind: "limit-exceeded", limit } }`. Empty and
 whitespace are still `not-an-expression`, not a limit. 256 is plenty for a keystroke
@@ -317,13 +317,7 @@ Public `Unit`, `Quantity`, `Result`, `Failure`, `Span`, `SpanKind` stay as they 
 Do not add `offset` or `dimension` to public `Quantity`.
 
 ```ts
-export type TokenKind =
-  | "number"
-  | "unit"
-  | "converter"
-  | "operator"
-  | "function"
-  | "unknown";
+export type TokenKind = "number" | "unit" | "converter" | "operator" | "function" | "unknown";
 
 export type ConverterWord = "to" | "in" | "as" | "→";
 
@@ -332,12 +326,12 @@ export type Token = {
   readonly start: number; // original input
   readonly end: number;
   readonly raw: string;
-  readonly value?: number;           // number
-  readonly unitId?: string;          // unit reading
+  readonly value?: number; // number
+  readonly unitId?: string; // unit reading
   readonly converter?: ConverterWord;
   readonly op?: "+" | "-" | "*" | "/" | "^" | "(" | ")";
-  readonly name?: "sqrt";            // function
-  readonly alt?: Token;              // other reading; only `in` in M2
+  readonly name?: "sqrt"; // function
+  readonly alt?: Token; // other reading; only `in` in M2
 };
 
 export type Ast =
@@ -351,15 +345,15 @@ export type Ast =
 
 `spans` maps tokens (post-rewrite, winning reading) to `SpanKind`:
 
-| Token        | SpanKind     |
-| ------------ | ------------ |
-| number       | `number`     |
-| unit         | `unit`       |
-| converter    | `converter`  |
-| `+ - * / ^`  | `operator`   |
-| `( )`        | `punctuation`|
-| `sqrt`       | `operator`   |
-| unknown      | `unknown`    |
+| Token       | SpanKind      |
+| ----------- | ------------- |
+| number      | `number`      |
+| unit        | `unit`        |
+| converter   | `converter`   |
+| `+ - * / ^` | `operator`    |
+| `( )`       | `punctuation` |
+| `sqrt`      | `operator`    |
+| unknown     | `unknown`     |
 
 Do not emit `currency` or `timezone` spans in M2. Those kinds stay on the union.
 
@@ -435,14 +429,14 @@ exit case and the usual English compound.
 
 Binding powers:
 
-| Form            | Power | Assoc  |
-| --------------- | ----- | ------ |
-| infix `+` `-`   | 10    | left   |
-| infix `*` `/`   | 20    | left   |
-| infix `^`       | 30    | right  |
-| prefix unary `-`| 40    |        |
-| prefix `sqrt(`  | 40    |        |
-| postfix unit    | 50    |        |
+| Form             | Power | Assoc |
+| ---------------- | ----- | ----- |
+| infix `+` `-`    | 10    | left  |
+| infix `*` `/`    | 20    | left  |
+| infix `^`        | 30    | right |
+| prefix unary `-` | 40    |       |
+| prefix `sqrt(`   | 40    |       |
+| postfix unit     | 50    |       |
 
 `^` is dimensionless-only at evaluation time. `(3 km)^2` is `dimension-mismatch` (or
 `unknown-unit` if someone implements it as mul by accident — do not). Integer powers of
@@ -463,15 +457,15 @@ deferred inverted form, not M2.
 
 Straightforward walk:
 
-| AST           | Call                                      |
-| ------------- | ----------------------------------------- |
-| number        | `quantity(n)`                             |
-| quantity      | `quantity(n, unitId)`                     |
-| unary `-`     | `mul(quantity(-1), inner)`                |
-| `+` `-` `*` `/` | `add` / `sub` / `mul` / `div`           |
-| `^`           | see §4.4                                  |
-| `sqrt`        | `sqrt(inner)`                             |
-| convert       | `convert(expr, toId)`                     |
+| AST             | Call                          |
+| --------------- | ----------------------------- |
+| number          | `quantity(n)`                 |
+| quantity        | `quantity(n, unitId)`         |
+| unary `-`       | `mul(quantity(-1), inner)`    |
+| `+` `-` `*` `/` | `add` / `sub` / `mul` / `div` |
+| `^`             | see §4.4                      |
+| `sqrt`          | `sqrt(inner)`                 |
+| convert         | `convert(expr, toId)`         |
 
 First `!ok` result is the pipeline result. Do not catch exceptions around this — those
 functions do not throw.
@@ -609,13 +603,13 @@ millisecond, not metres. `c` is celsius, not cup.
 
 ### 5.2 Non-units
 
-| Alias | Token |
-| ----- | ----- |
-| `to`  | converter |
-| `in`  | converter (alt: inch) |
-| `as`  | converter |
-| `→`   | converter |
-| `sqrt`| function, only before `(` |
+| Alias  | Token                     |
+| ------ | ------------------------- |
+| `to`   | converter                 |
+| `in`   | converter (alt: inch)     |
+| `as`   | converter                 |
+| `→`    | converter                 |
+| `sqrt` | function, only before `(` |
 
 ---
 
@@ -647,13 +641,13 @@ Change the spans test to expect the coloring in §6.4 for `20 c to f`, not `[]`.
 
 ### 6.2 Accept — drop `todo` on these, fill `unitId` / `value`
 
-| `name`              | `input`                   | `unitId`     | `value`    | `checkText` |
-| ------------------- | ------------------------- | ------------ | ---------- | ----------- |
-| `temp-c-to-f`       | `20 c to f`               | `fahrenheit` | 68         | true (`68 °F`) |
-| `arith-km-to-miles` | `(2 + 3) * 4 km in miles` | `mile`       | `20 / 1.609344` | false  |
-| `mixed-ft-in-cm`    | `5 ft 11 in cm`           | `centimetre` | 180.34     | false (float) |
-| `lex-min-not-m`     | `1 min`                   | `minute`     | 1          | true (`1 min`) |
-| `lex-m-in-ft`       | `1 m in ft`               | `foot`       | `1/0.3048` | false     |
+| `name`              | `input`                   | `unitId`     | `value`         | `checkText`    |
+| ------------------- | ------------------------- | ------------ | --------------- | -------------- |
+| `temp-c-to-f`       | `20 c to f`               | `fahrenheit` | 68              | true (`68 °F`) |
+| `arith-km-to-miles` | `(2 + 3) * 4 km in miles` | `mile`       | `20 / 1.609344` | false          |
+| `mixed-ft-in-cm`    | `5 ft 11 in cm`           | `centimetre` | 180.34          | false (float)  |
+| `lex-min-not-m`     | `1 min`                   | `minute`     | 1               | true (`1 min`) |
+| `lex-m-in-ft`       | `1 m in ft`               | `foot`       | `1/0.3048`      | false          |
 
 Leave `todo: true` on `usd-in-eur` and `pst-in-tokyo`. Those inputs must still return
 `not-an-expression` (unknown words), not a currency/timezone guess. The fixture expect
@@ -662,35 +656,35 @@ that M2’s correct behavior is refuse.
 
 Add accept rows (no todo):
 
-| `name`            | `input`              | Expect |
-| ----------------- | -------------------- | ------ |
-| `bare-number`     | `20`                 | dimensionless `20`, checkText true (`20`) |
-| `two-plus-two`    | `2 + 2`              | `4` |
-| `glued-km`        | `2km`                | 2 kilometre |
-| `arrow-c-to-f`    | `20 c → f`           | same as `temp-c-to-f` |
-| `as-converter`    | `20 c as f`          | same |
-| `m-times-m`       | `10 m * 10 m`        | 100 metre-squared |
-| `km-plus-m`       | `1 km + 1000 m`      | 2 kilometre |
-| `abs-plus-abs-nl` | `20 c + 5 c`         | `dimension-mismatch` |
-| `kg-times-l-nl`   | `3 kg * 3 L`         | `unknown-unit` |
-| `c-to-kg`         | `20 c to kg`         | `dimension-mismatch` |
-| `gallon-us`       | `1 gallon to litre`  | locale default, `us-gallon` → 3.785411784 L |
-| `gallon-gb`       | `1 gallon to litre`  | `locale: "en-GB"` → 4.54609 L |
-| `oz-is-mass`      | `1 oz to g`          | 28.349523125 g (pound/16) |
-| `sqrt-four`       | `sqrt(4)`            | 2 dimensionless |
-| `unary-minus`     | `-5 + 3`             | `-2` |
+| `name`            | `input`             | Expect                                      |
+| ----------------- | ------------------- | ------------------------------------------- |
+| `bare-number`     | `20`                | dimensionless `20`, checkText true (`20`)   |
+| `two-plus-two`    | `2 + 2`             | `4`                                         |
+| `glued-km`        | `2km`               | 2 kilometre                                 |
+| `arrow-c-to-f`    | `20 c → f`          | same as `temp-c-to-f`                       |
+| `as-converter`    | `20 c as f`         | same                                        |
+| `m-times-m`       | `10 m * 10 m`       | 100 metre-squared                           |
+| `km-plus-m`       | `1 km + 1000 m`     | 2 kilometre                                 |
+| `abs-plus-abs-nl` | `20 c + 5 c`        | `dimension-mismatch`                        |
+| `kg-times-l-nl`   | `3 kg * 3 L`        | `unknown-unit`                              |
+| `c-to-kg`         | `20 c to kg`        | `dimension-mismatch`                        |
+| `gallon-us`       | `1 gallon to litre` | locale default, `us-gallon` → 3.785411784 L |
+| `gallon-gb`       | `1 gallon to litre` | `locale: "en-GB"` → 4.54609 L               |
+| `oz-is-mass`      | `1 oz to g`         | 28.349523125 g (pound/16)                   |
+| `sqrt-four`       | `sqrt(4)`           | 2 dimensionless                             |
+| `unary-minus`     | `-5 + 3`            | `-2`                                        |
 
 `gallon-gb` uses `locale: "en-GB"` on the fixture. `1 oz to g` uses the exact
 avoirdupois factor already in the table (`0.45359237 / 16 * 1000` grams).
 
 ### 6.3 Reject — keep all existing; add
 
-| `name`            | `input`        | Why |
-| ----------------- | -------------- | --- |
-| `incomplete-to`   | `20 c to`      | converter without target |
-| `inverted`        | `km in m`      | deferred inverted form |
-| `bare-two-units`  | `km m`         | deferred shorthand |
-| `comment-for`     | `10 m for scale` | `for` is not a keyword; leftover |
+| `name`           | `input`          | Why                              |
+| ---------------- | ---------------- | -------------------------------- |
+| `incomplete-to`  | `20 c to`        | converter without target         |
+| `inverted`       | `km in m`        | deferred inverted form           |
+| `bare-two-units` | `km m`           | deferred shorthand               |
+| `comment-for`    | `10 m for scale` | `for` is not a keyword; leftover |
 
 Existing reject rows, including `question` and `send-to-john`, must still be
 `not-an-expression`.

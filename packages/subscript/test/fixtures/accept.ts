@@ -197,4 +197,17 @@ export const accept: Fixture[] = [
     input: "-5 + 3",
     expect: { ok: true, text: "-2", unitId: "1", value: -2, checkText: true },
   },
+  {
+    name: "negative-celsius",
+    input: "-20 c to f",
+    expect: {
+      ok: true,
+      text: "-4 °F",
+      unitId: "fahrenheit",
+      value: -4,
+      eps: 1e-12,
+      checkText: true,
+    },
+    notes: "Unary minus negates the literal; an absolute temperature can be negative.",
+  },
 ];

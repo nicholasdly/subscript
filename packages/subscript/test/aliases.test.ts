@@ -1,9 +1,18 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { aliasesFor, UNIT_ALIASES, volumeLocale } from "../src/units/aliases.ts";
+import { aliasesFor, UNIT_ALIASES, volumeLocale, type VolumeLocale } from "../src/units/aliases.ts";
 import { lookupUnit } from "../src/units/lookup.ts";
-import { buildTrie, matchTrie } from "../src/units/trie.ts";
+import { matchTrie, trieFor, type TrieValue } from "../src/units/trie.ts";
+
+function match(locale: string, text: string): TrieValue | undefined {
+  return matchTrie(trieFor(locale), text, 0)?.value;
+}
+
+function unitId(locale: string, text: string): string | undefined {
+  const value = match(locale, text);
+  return value?.kind === "unit" ? value.unitId : undefined;
+}
 
 test("volume locale is imperial only for en-GB", () => {
   assert.equal(volumeLocale("en-US"), "us");
@@ -20,8 +29,8 @@ test("non-locale aliases are unique", () => {
     if (row.locale !== undefined) {
       continue;
     }
-    const prev = seen.get(row.alias);
-    assert.equal(prev, undefined, `duplicate alias ${row.alias}`);
+    const previous = seen.get(row.alias);
+    assert.equal(previous, undefined, `duplicate alias ${row.alias}`);
     seen.set(row.alias, row.id);
   }
 });
@@ -33,14 +42,14 @@ test("every alias id exists in the unit table", () => {
 });
 
 test("resolved aliases are unique per locale except in", () => {
-  for (const locale of ["en-US", "en-GB"]) {
+  for (const volume of ["us", "gb"] as VolumeLocale[]) {
     const seen = new Map<string, string>();
-    for (const row of aliasesFor(locale)) {
-      const prev = seen.get(row.alias);
+    for (const row of aliasesFor(volume)) {
+      const previous = seen.get(row.alias);
       assert.equal(
-        prev,
+        previous,
         undefined,
-        `duplicate ${row.alias} in ${locale}: ${prev} vs ${row.id}`,
+        `duplicate ${row.alias} in ${volume}: ${previous} vs ${row.id}`,
       );
       seen.set(row.alias, row.id);
     }
@@ -48,48 +57,37 @@ test("resolved aliases are unique per locale except in", () => {
 });
 
 test("in has exactly two readings", () => {
-  const trie = buildTrie("en-US");
-  const hit = matchTrie(trie, "in", 0);
-  assert.equal(hit?.kind, "ambiguous");
-  if (hit?.kind === "ambiguous") {
-    assert.equal(hit.converter, "in");
-    assert.equal(hit.unitId, "inch");
-    assert.equal(hit.length, 2);
+  const hit = matchTrie(trieFor("en-US"), "in", 0);
+  assert.equal(hit?.length, 2);
+  assert.equal(hit?.value.kind, "ambiguous");
+  if (hit?.value.kind === "ambiguous") {
+    assert.equal(hit.value.converter, "in");
+    assert.equal(hit.value.unitId, "inch");
   }
 });
 
 test("oz is mass, not fluid ounce", () => {
-  const trie = buildTrie("en-US");
-  const hit = matchTrie(trie, "oz", 0);
-  assert.equal(hit?.kind, "unit");
-  if (hit?.kind === "unit") {
-    assert.equal(hit.unitId, "ounce");
-  }
+  assert.equal(unitId("en-US", "oz"), "ounce");
 });
 
 test("gal follows locale", () => {
-  const us = matchTrie(buildTrie("en-US"), "gal", 0);
-  const gb = matchTrie(buildTrie("en-GB"), "gal", 0);
-  assert.equal(us?.kind, "unit");
-  assert.equal(gb?.kind, "unit");
-  if (us?.kind === "unit" && gb?.kind === "unit") {
-    assert.equal(us.unitId, "us-gallon");
-    assert.equal(gb.unitId, "imperial-gallon");
-    assert.notEqual(us.unitId, gb.unitId);
-  }
+  assert.equal(unitId("en-US", "gal"), "us-gallon");
+  assert.equal(unitId("en-GB", "gal"), "imperial-gallon");
 });
 
 test("k is kelvin, km is kilometre, kilo is kilogram", () => {
-  const trie = buildTrie("en-US");
-  const k = matchTrie(trie, "k", 0);
-  const km = matchTrie(trie, "km", 0);
-  const kilo = matchTrie(trie, "kilo", 0);
-  assert.equal(k?.kind, "unit");
-  assert.equal(km?.kind, "unit");
-  assert.equal(kilo?.kind, "unit");
-  if (k?.kind === "unit" && km?.kind === "unit" && kilo?.kind === "unit") {
-    assert.equal(k.unitId, "kelvin");
-    assert.equal(km.unitId, "kilometre");
-    assert.equal(kilo.unitId, "kilogram");
+  assert.equal(unitId("en-US", "k"), "kelvin");
+  assert.equal(unitId("en-US", "km"), "kilometre");
+  assert.equal(unitId("en-US", "kilo"), "kilogram");
+});
+
+test("fl oz follows locale rather than the us-fluid-ounce symbol", () => {
+  assert.equal(unitId("en-US", "fl oz"), "us-fluid-ounce");
+  assert.equal(unitId("en-GB", "fl oz"), "imperial-fluid-ounce");
+});
+
+test("temperature interval symbols are not typeable", () => {
+  for (const symbol of ["\u0394\u00b0C", "\u0394\u00b0F"]) {
+    assert.equal(match("en-US", symbol), undefined, symbol);
   }
 });

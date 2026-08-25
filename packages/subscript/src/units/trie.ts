@@ -1,35 +1,32 @@
-import { MAX_ALIAS_LENGTH } from "../limits.ts";
-import type { ConverterWord } from "../token.ts";
 import {
-  aliasesFor,
+  charAt,
   foldChar,
   isAllLetters,
   isLetter,
-  type UnitAlias,
-} from "./aliases.ts";
+  isWhitespace,
+  skipWhitespace,
+} from "../chars.ts";
+import { MAX_ALIAS_LENGTH } from "../limits.ts";
+import type { ConverterWord } from "../token.ts";
+import { aliasesFor, UNIT_ALIASES, volumeLocale, type VolumeLocale } from "./aliases.ts";
+import type { UnitDef } from "./kinds.ts";
 import { UNITS } from "./table.ts";
 
-export type TrieHit =
-  | { kind: "unit"; unitId: string; length: number; allLetters: boolean }
-  | {
-      kind: "ambiguous";
-      length: number;
-      allLetters: boolean;
-      converter: ConverterWord;
-      unitId: string;
-    }
-  | { kind: "converter"; converter: ConverterWord; length: number; allLetters: boolean }
-  | { kind: "function"; name: "sqrt"; length: number; allLetters: boolean };
-
-type TrieValue =
+export type TrieValue =
   | { kind: "unit"; unitId: string }
   | { kind: "converter"; converter: ConverterWord }
   | { kind: "function"; name: "sqrt" }
   | { kind: "ambiguous"; converter: ConverterWord; unitId: string };
 
+export type TrieMatch = {
+  readonly value: TrieValue;
+  readonly length: number;
+};
+
 type TrieNode = {
   children: Map<string, TrieNode>;
   value?: TrieValue;
+  /** True when the key ending here is all letters, so it needs a word boundary. */
   allLetters: boolean;
 };
 
@@ -37,15 +34,12 @@ function newNode(): TrieNode {
   return { children: new Map(), allLetters: false };
 }
 
-function collapseSpaces(alias: string): string {
-  return alias.normalize("NFC").replace(/\s+/g, " ").trim();
-}
-
 function insert(root: TrieNode, alias: string, value: TrieValue): void {
-  const key = collapseSpaces(alias);
+  const key = alias.normalize("NFC").replace(/\s+/g, " ").trim();
   if (key.length === 0 || key.length > MAX_ALIAS_LENGTH) {
     return;
   }
+
   let node = root;
   for (const ch of key) {
     const folded = foldChar(ch);
@@ -57,105 +51,86 @@ function insert(root: TrieNode, alias: string, value: TrieValue): void {
     node = child;
   }
   node.allLetters = isAllLetters(key);
-  if (node.value === undefined) {
-    node.value = value;
-    return;
-  }
-  if (node.value.kind === "ambiguous") {
-    return;
-  }
-  if (node.value.kind === "unit" && value.kind === "converter") {
-    node.value = {
-      kind: "ambiguous",
-      converter: value.converter,
-      unitId: node.value.unitId,
-    };
-    return;
-  }
-  if (node.value.kind === "converter" && value.kind === "unit") {
-    node.value = {
-      kind: "ambiguous",
-      converter: node.value.converter,
-      unitId: value.unitId,
-    };
-  }
+  node.value = merge(node.value, value);
 }
 
-const SKIP_SYMBOLS = new Set([
-  "",
-  "gal",
-  "imp gal",
-  "fl oz",
-  "imp fl oz",
-  "\u0394\u00b0C",
-  "\u0394\u00b0F",
-]);
-const SKIP_IDS = new Set(["1", "delta-celsius", "delta-fahrenheit"]);
+/** A key inserted as both a unit and a converter becomes one ambiguous reading. */
+function merge(existing: TrieValue | undefined, added: TrieValue): TrieValue {
+  if (existing === undefined) {
+    return added;
+  }
+  if (existing.kind === "unit" && added.kind === "converter") {
+    return { kind: "ambiguous", converter: added.converter, unitId: existing.unitId };
+  }
+  if (existing.kind === "converter" && added.kind === "unit") {
+    return { kind: "ambiguous", converter: existing.converter, unitId: added.unitId };
+  }
+  return existing;
+}
 
-function insertUnitAliases(root: TrieNode, aliases: readonly UnitAlias[]): void {
-  for (const row of aliases) {
+/** Ids whose spelling depends on the locale, so only §5 aliases may reach them. */
+const LOCALE_SCOPED_IDS = new Set(
+  UNIT_ALIASES.filter((row) => row.locale !== undefined).map((row) => row.id),
+);
+
+function symbolIsTypeable(unit: UnitDef): boolean {
+  return unit.symbol !== "" && unit.affine !== "difference" && !LOCALE_SCOPED_IDS.has(unit.id);
+}
+
+function build(volume: VolumeLocale): TrieNode {
+  const root = newNode();
+  for (const row of aliasesFor(volume)) {
     insert(root, row.alias, { kind: "unit", unitId: row.id });
   }
-}
-
-function insertSymbols(root: TrieNode): void {
   for (const unit of UNITS) {
-    if (SKIP_IDS.has(unit.id) || SKIP_SYMBOLS.has(unit.symbol)) {
-      continue;
+    if (symbolIsTypeable(unit)) {
+      insert(root, unit.symbol, { kind: "unit", unitId: unit.id });
     }
-    insert(root, unit.symbol, { kind: "unit", unitId: unit.id });
   }
-}
-
-export function buildTrie(locale: string): TrieNode {
-  const root = newNode();
-  insertUnitAliases(root, aliasesFor(locale));
-  insertSymbols(root);
   insert(root, "to", { kind: "converter", converter: "to" });
-  insert(root, "in", { kind: "converter", converter: "in" });
   insert(root, "as", { kind: "converter", converter: "as" });
   insert(root, "\u2192", { kind: "converter", converter: "\u2192" });
   insert(root, "sqrt", { kind: "function", name: "sqrt" });
+  insert(root, "in", { kind: "converter", converter: "in" });
   insert(root, "in", { kind: "unit", unitId: "inch" });
   return root;
 }
 
-function isWhitespace(ch: string): boolean {
-  return /\s/u.test(ch);
+const tries = new Map<VolumeLocale, TrieNode>();
+
+/** Tries are immutable once built, and there are only two, so they are shared. */
+export function trieFor(locale: string): TrieNode {
+  const volume = volumeLocale(locale);
+  let trie = tries.get(volume);
+  if (trie === undefined) {
+    trie = build(volume);
+    tries.set(volume, trie);
+  }
+  return trie;
 }
 
-export function matchTrie(root: TrieNode, text: string, start: number): TrieHit | undefined {
+/** An all-letter alias may not end in the middle of a word: `minimum` is not `min`. */
+function needsBoundary(node: TrieNode, text: string, end: number): boolean {
+  return node.allLetters && isLetter(charAt(text, end));
+}
+
+/** Longest alias starting at `start`, or `undefined` when none matches. */
+export function matchTrie(root: TrieNode, text: string, start: number): TrieMatch | undefined {
   let node = root;
   let i = start;
   let consumed = 0;
-  const hits: { end: number; node: TrieNode }[] = [];
+  let best: TrieMatch | undefined;
 
   while (i < text.length && consumed < MAX_ALIAS_LENGTH) {
-    const cp = text.codePointAt(i);
-    if (cp === undefined) {
-      break;
-    }
-    const ch = String.fromCodePoint(cp);
+    const ch = charAt(text, i);
     if (isWhitespace(ch)) {
-      const spaceChild = node.children.get(" ");
-      if (spaceChild === undefined) {
+      const child = node.children.get(" ");
+      if (child === undefined) {
         break;
       }
-      node = spaceChild;
-      let j = i + ch.length;
-      while (j < text.length) {
-        const nextCp = text.codePointAt(j);
-        if (nextCp === undefined) {
-          break;
-        }
-        const nextCh = String.fromCodePoint(nextCp);
-        if (!isWhitespace(nextCh)) {
-          break;
-        }
-        j += nextCh.length;
-      }
+      node = child;
+      i = skipWhitespace(text, i);
       consumed += 1;
-      i = j;
     } else {
       const child = node.children.get(foldChar(ch));
       if (child === undefined) {
@@ -165,44 +140,12 @@ export function matchTrie(root: TrieNode, text: string, start: number): TrieHit 
       i += ch.length;
       consumed += ch.length;
     }
-    if (node.value !== undefined) {
-      hits.push({ end: i, node });
+    if (node.value !== undefined && !needsBoundary(node, text, i)) {
+      best = { value: node.value, length: i - start };
     }
   }
 
-  for (let h = hits.length - 1; h >= 0; h--) {
-    const hit = hits[h];
-    if (hit === undefined) {
-      continue;
-    }
-    const nextCh =
-      hit.end < text.length ? String.fromCodePoint(text.codePointAt(hit.end) ?? 32) : "";
-    const blocked = hit.node.allLetters && nextCh !== "" && isLetter(nextCh);
-    if (blocked || hit.node.value === undefined) {
-      continue;
-    }
-    const length = hit.end - start;
-    const allLetters = hit.node.allLetters;
-    const value = hit.node.value;
-    if (value.kind === "unit") {
-      return { kind: "unit", unitId: value.unitId, length, allLetters };
-    }
-    if (value.kind === "converter") {
-      return { kind: "converter", converter: value.converter, length, allLetters };
-    }
-    if (value.kind === "function") {
-      return { kind: "function", name: value.name, length, allLetters };
-    }
-    return {
-      kind: "ambiguous",
-      length,
-      allLetters,
-      converter: value.converter,
-      unitId: value.unitId,
-    };
-  }
-
-  return undefined;
+  return best;
 }
 
 export type { TrieNode };

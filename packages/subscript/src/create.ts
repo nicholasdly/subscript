@@ -1,14 +1,12 @@
 import { runPipeline } from "./pipeline.ts";
-import type { Instant, NowFn, RateProvider, Result, Span } from "./types.ts";
-import { buildTrie } from "./units/trie.ts";
-
-function defaultNow(): Instant {
-  return { epochMilliseconds: Date.now() };
-}
+import type { NowFn, RateProvider, Result, Span } from "./types.ts";
+import { trieFor } from "./units/trie.ts";
 
 export type SubscriptConfig = {
   locale?: string;
+  /** Injected clock. Unused until M5 wires time zones. */
   now?: NowFn;
+  /** Injected rate source. Unused until M4 wires currency. */
   rates?: RateProvider;
 };
 
@@ -18,12 +16,7 @@ export type Subscript = {
 };
 
 export function createSubscript(config: SubscriptConfig = {}): Subscript {
-  const locale = config.locale ?? "en-US";
-  const now = config.now ?? defaultNow;
-  const rates = config.rates;
-  const trie = buildTrie(locale);
-  void now;
-  void rates;
+  const trie = trieFor(config.locale ?? "en-US");
 
   return {
     evaluate(input: string): Result {

@@ -15,9 +15,7 @@ export function volumeLocale(locale: string): VolumeLocale {
 }
 
 function rows(id: string, aliases: readonly string[], locale?: VolumeLocale): UnitAlias[] {
-  return aliases.map((alias) =>
-    locale === undefined ? { alias, id } : { alias, id, locale },
-  );
+  return aliases.map((alias) => (locale === undefined ? { alias, id } : { alias, id, locale }));
 }
 
 export const UNIT_ALIASES: readonly UnitAlias[] = [
@@ -96,11 +94,7 @@ export const UNIT_ALIASES: readonly UnitAlias[] = [
   ...rows("imperial-gallon", ["gallon", "gallons", "gal"], "gb"),
   ...rows("us-fluid-ounce", ["us fl oz", "us fluid ounce", "us fluid ounces"]),
   ...rows("us-fluid-ounce", ["fl oz", "fluid ounce", "fluid ounces"], "us"),
-  ...rows("imperial-fluid-ounce", [
-    "imp fl oz",
-    "imperial fluid ounce",
-    "imperial fluid ounces",
-  ]),
+  ...rows("imperial-fluid-ounce", ["imp fl oz", "imperial fluid ounce", "imperial fluid ounces"]),
   ...rows("imperial-fluid-ounce", ["fl oz", "fluid ounce", "fluid ounces"], "gb"),
   ...rows("metre-per-second", ["m/s", "mps", "meters per second", "metres per second"]),
   ...rows("kilometre-per-hour", ["km/h", "kph", "kilometers per hour", "kilometres per hour"]),
@@ -108,39 +102,6 @@ export const UNIT_ALIASES: readonly UnitAlias[] = [
   ...rows("knot", ["kn", "kt", "knot", "knots"]),
 ];
 
-export function foldChar(ch: string): string {
-  const code = ch.charCodeAt(0);
-  if (code >= 65 && code <= 90) {
-    return String.fromCharCode(code + 32);
-  }
-  return ch;
-}
-
-export function foldKey(alias: string): string {
-  let out = "";
-  for (const ch of alias.normalize("NFC")) {
-    out += foldChar(ch);
-  }
-  return out;
-}
-
-export function isLetter(ch: string): boolean {
-  return /\p{L}/u.test(ch);
-}
-
-export function isAllLetters(alias: string): boolean {
-  if (alias.length === 0) {
-    return false;
-  }
-  for (const ch of alias) {
-    if (!isLetter(ch)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-export function aliasesFor(locale: string): readonly UnitAlias[] {
-  const volume = volumeLocale(locale);
+export function aliasesFor(volume: VolumeLocale): readonly UnitAlias[] {
   return UNIT_ALIASES.filter((row) => row.locale === undefined || row.locale === volume);
 }

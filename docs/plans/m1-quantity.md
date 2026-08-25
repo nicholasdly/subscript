@@ -16,17 +16,17 @@ temperature distinction; `evaluate("20 c to f")` is still
 
 ## 0. Current state
 
-| Item           | Today                                                                                          |
-| -------------- | ---------------------------------------------------------------------------------------------- |
-| Public API     | `evaluate`, `createSubscript`, `Result` / `Failure`, `spans` → `[]`                            |
-| `evaluate`     | always `{ ok: false, reason: { kind: "not-an-expression" } }`, never throws                    |
-| `Quantity`     | `{ value: number, unit: Unit }`; `Unit` is `{ id, symbol }`                                    |
-| Unit table     | none                                                                                           |
-| Arithmetic     | none                                                                                           |
-| NL fixtures    | reject cases assert; accept cases are `todo: true`                                             |
-| Tests inject   | `now`; they never read the ambient clock                                                       |
-| Runtime deps   | zero (keep it that way)                                                                        |
-| Provenance     | M0 logged; unit-data citations have nowhere to live until this plan ships                      |
+| Item         | Today                                                                       |
+| ------------ | --------------------------------------------------------------------------- |
+| Public API   | `evaluate`, `createSubscript`, `Result` / `Failure`, `spans` → `[]`         |
+| `evaluate`   | always `{ ok: false, reason: { kind: "not-an-expression" } }`, never throws |
+| `Quantity`   | `{ value: number, unit: Unit }`; `Unit` is `{ id, symbol }`                 |
+| Unit table   | none                                                                        |
+| Arithmetic   | none                                                                        |
+| NL fixtures  | reject cases assert; accept cases are `todo: true`                          |
+| Tests inject | `now`; they never read the ambient clock                                    |
+| Runtime deps | zero (keep it that way)                                                     |
+| Provenance   | M0 logged; unit-data citations have nowhere to live until this plan ships   |
 
 Treat as given, from [`docs/provenance.md`](../provenance.md): layer 1 is a free `evaluate`;
 configure via `createSubscript`; `Quantity` grows additively from `value` + `unit`.
@@ -42,18 +42,18 @@ would otherwise leak into the type of every quantity.
 
 Permissive databases exist. We still do not vendor them.
 
-| Source     | License                         | Why not                          |
-| ---------- | ------------------------------- | -------------------------------- |
-| GNU Units  | GPL-3.0-or-later                | already forbidden (`plan.md` §1.4) |
-| UDUNITS-2  | UCAR (modified BSD-3 + patent termination) | scientific/netCDF catalog, not a calculator alias table |
-| QUDT       | CC BY 4.0, and it embeds UCUM   | UCUM’s Regenstrief license is not MIT-shaped |
-| UCUM       | Regenstrief, revocable, not for deriving a competing codeset | same |
+| Source    | License                                                      | Why not                                                 |
+| --------- | ------------------------------------------------------------ | ------------------------------------------------------- |
+| GNU Units | GPL-3.0-or-later                                             | already forbidden (`plan.md` §1.4)                      |
+| UDUNITS-2 | UCAR (modified BSD-3 + patent termination)                   | scientific/netCDF catalog, not a calculator alias table |
+| QUDT      | CC BY 4.0, and it embeds UCUM                                | UCUM’s Regenstrief license is not MIT-shaped            |
+| UCUM      | Regenstrief, revocable, not for deriving a competing codeset | same                                                    |
 
 The facts (a mile is 1609.344 m) are not copyrightable. The compilation is. Each M1 row cites
 NIST SP 811, NIST Handbook 44 Appendix C, the SI Brochure, or the 1959 international yard and
 pound — the same primary sources GNU Units cites — and never copies GNU Units’ arrangement.
 
-`plan.md` §1.4 and §5.4 already picked this: the alias table *is* the product. M1 is the first
+`plan.md` §1.4 and §5.4 already picked this: the alias table _is_ the product. M1 is the first
 slice of that table, not a parser for someone else’s.
 
 ### 1.2 Affine kind lives on the unit, not as an offset on `Quantity`
@@ -134,8 +134,8 @@ M1 is not natural language. Do not wire `evaluate`. Do not add `quantity` onto t
 ```ts
 import { quantity, convert, add, sub, mul, div, sqrt } from "@repo/subscript";
 
-quantity(20, "celsius");          // ok
-convert(that, "fahrenheit");      // 68 °F
+quantity(20, "celsius"); // ok
+convert(that, "fahrenheit"); // 68 °F
 add(quantity(20, "celsius"), quantity(5, "celsius")); // dimension-mismatch
 ```
 
@@ -230,15 +230,15 @@ export type AffineKind = "linear" | "absolute" | "difference";
 export type UnitSource = {
   readonly citation: string; // "NIST SP 811 Appendix B.8", "SI Brochure 9", ...
   readonly url?: string;
-  readonly notes?: string;   // "exactly 0.3048 m (international foot)"
+  readonly notes?: string; // "exactly 0.3048 m (international foot)"
 };
 
 export type UnitDef = {
-  readonly id: string;             // kebab-case, unique
+  readonly id: string; // kebab-case, unique
   readonly symbol: string;
   readonly dimension: Dimension;
-  readonly scale: number;          // multiply value to reach SI coherent (offset 0) units
-  readonly offset: number;         // 0 for linear and difference; kelvin-space intercept for absolute
+  readonly scale: number; // multiply value to reach SI coherent (offset 0) units
+  readonly offset: number; // 0 for linear and difference; kelvin-space intercept for absolute
   readonly affine: AffineKind;
   readonly source: UnitSource;
 };
@@ -251,36 +251,36 @@ From SI coherent: `numeric.div(numeric.sub(si, offset), scale)`.
 
 ### 3.4 Affine kinds
 
-| `affine`       | Examples                         | Role                                      |
-| -------------- | -------------------------------- | ----------------------------------------- |
-| `linear`       | metre, kelvin, rankine, second   | Ordinary; kelvin/rankine are also the thermodynamic scales |
-| `absolute`     | celsius, fahrenheit              | Point on a scale                          |
-| `difference`   | delta-celsius, delta-fahrenheit  | Interval; same dimension as absolute      |
+| `affine`     | Examples                        | Role                                                       |
+| ------------ | ------------------------------- | ---------------------------------------------------------- |
+| `linear`     | metre, kelvin, rankine, second  | Ordinary; kelvin/rankine are also the thermodynamic scales |
+| `absolute`   | celsius, fahrenheit             | Point on a scale                                           |
+| `difference` | delta-celsius, delta-fahrenheit | Interval; same dimension as absolute                       |
 
 Kelvin is `linear`, not `absolute`. That is the Boost-shaped move that makes `20 °C → K` and
 `20 °C + 5 K` both work without Numbat’s “everything is already kelvin” collapse.
 
 Truth table (same dimension; otherwise `dimension-mismatch`):
 
-| Op                         | Result                                      |
-| -------------------------- | ------------------------------------------- |
-| convert abs → abs          | via SI (kelvin)                             |
-| convert abs → linear       | allowed (20 °C → K, 32 °F → °R)             |
-| convert abs → difference   | `dimension-mismatch`                        |
-| convert difference → abs   | `dimension-mismatch`                        |
-| convert difference → linear| allowed (5 Δ°C → 5 K)                       |
-| convert linear → abs       | allowed (293.15 K → °C)                     |
-| convert linear ↔ linear    | scale only                                  |
-| add abs + abs              | `dimension-mismatch`                        |
-| add abs + (diff \| linear) | absolute, left’s unit                       |
-| add diff + diff            | difference, larger unit wins                |
-| add linear + linear        | linear, larger unit wins                    |
-| sub abs − abs              | difference, in `delta-*` of the left unit (celsius → delta-celsius; kelvin stays kelvin) |
-| sub abs − (diff \| linear) | absolute                                    |
-| mul/div abs × anything     | `dimension-mismatch`, except not applicable — refuse all mul/div involving `absolute` |
-| mul diff × dimensionless   | difference                                  |
-| mul linear × dimensionless | linear                                      |
-| sqrt(abs)                  | `dimension-mismatch`                        |
+| Op                          | Result                                                                                   |
+| --------------------------- | ---------------------------------------------------------------------------------------- |
+| convert abs → abs           | via SI (kelvin)                                                                          |
+| convert abs → linear        | allowed (20 °C → K, 32 °F → °R)                                                          |
+| convert abs → difference    | `dimension-mismatch`                                                                     |
+| convert difference → abs    | `dimension-mismatch`                                                                     |
+| convert difference → linear | allowed (5 Δ°C → 5 K)                                                                    |
+| convert linear → abs        | allowed (293.15 K → °C)                                                                  |
+| convert linear ↔ linear     | scale only                                                                               |
+| add abs + abs               | `dimension-mismatch`                                                                     |
+| add abs + (diff \| linear)  | absolute, left’s unit                                                                    |
+| add diff + diff             | difference, larger unit wins                                                             |
+| add linear + linear         | linear, larger unit wins                                                                 |
+| sub abs − abs               | difference, in `delta-*` of the left unit (celsius → delta-celsius; kelvin stays kelvin) |
+| sub abs − (diff \| linear)  | absolute                                                                                 |
+| mul/div abs × anything      | `dimension-mismatch`, except not applicable — refuse all mul/div involving `absolute`    |
+| mul diff × dimensionless    | difference                                                                               |
+| mul linear × dimensionless  | linear                                                                                   |
+| sqrt(abs)                   | `dimension-mismatch`                                                                     |
 
 `20 °C × 2` fails. `5 Δ°C × 2` is `10 Δ°C`. `sqrt(m²)` is `m`.
 
@@ -346,54 +346,54 @@ Calendar lengths are named constants on the time rows, not magic in convert (`pl
 
 **Length** (dimension L, SI = metre)
 
-| `id`             | `symbol` | `scale` (m)        | Source |
-| ---------------- | -------- | ------------------ | ------ |
-| `metre`          | `m`      | 1                  | SI     |
-| `kilometre`      | `km`     | 1000               | SI prefix |
-| `centimetre`     | `cm`     | 0.01               | SI prefix |
-| `millimetre`     | `mm`     | 0.001              | SI prefix |
-| `inch`           | `in`     | 0.0254             | 1959 yard/pound |
-| `foot`           | `ft`     | 0.3048             | 1959 (international foot, not survey) |
-| `yard`           | `yd`     | 0.9144             | 1959 |
-| `mile`           | `mi`     | 1609.344           | 5280 × foot |
-| `nautical-mile`  | `nmi`    | 1852               | SI Brochure / IHO |
+| `id`            | `symbol` | `scale` (m) | Source                                |
+| --------------- | -------- | ----------- | ------------------------------------- |
+| `metre`         | `m`      | 1           | SI                                    |
+| `kilometre`     | `km`     | 1000        | SI prefix                             |
+| `centimetre`    | `cm`     | 0.01        | SI prefix                             |
+| `millimetre`    | `mm`     | 0.001       | SI prefix                             |
+| `inch`          | `in`     | 0.0254      | 1959 yard/pound                       |
+| `foot`          | `ft`     | 0.3048      | 1959 (international foot, not survey) |
+| `yard`          | `yd`     | 0.9144      | 1959                                  |
+| `mile`          | `mi`     | 1609.344    | 5280 × foot                           |
+| `nautical-mile` | `nmi`    | 1852        | SI Brochure / IHO                     |
 
 **Mass** (dimension M, SI = kilogram)
 
-| `id`     | `symbol` | `scale` (kg)        | Source |
-| -------- | -------- | ------------------- | ------ |
-| `kilogram` | `kg`   | 1                   | SI     |
-| `gram`     | `g`    | 0.001               | SI     |
-| `milligram`| `mg`   | 1e-6                | SI     |
-| `pound`    | `lb`   | 0.45359237          | 1959 yard/pound |
-| `ounce`    | `oz`   | `pound / 16`        | avoirdupois; not fluid |
-| `tonne`    | `t`    | 1000                | SI (metric ton) |
+| `id`        | `symbol` | `scale` (kg) | Source                 |
+| ----------- | -------- | ------------ | ---------------------- |
+| `kilogram`  | `kg`     | 1            | SI                     |
+| `gram`      | `g`      | 0.001        | SI                     |
+| `milligram` | `mg`     | 1e-6         | SI                     |
+| `pound`     | `lb`     | 0.45359237   | 1959 yard/pound        |
+| `ounce`     | `oz`     | `pound / 16` | avoirdupois; not fluid |
+| `tonne`     | `t`      | 1000         | SI (metric ton)        |
 
 No short ton, no long ton, no `lbf`.
 
 **Time** (dimension T, SI = second)
 
-| `id`     | `symbol` | `scale` (s)        |
-| -------- | -------- | ------------------ |
-| `second` | `s`      | 1                  |
-| `millisecond` | `ms` | 0.001            |
-| `minute` | `min`    | 60                 |
-| `hour`   | `h`      | 3600               |
-| `day`    | `d`      | 86400              |
-| `week`   | `wk`     | 604800             |
-| `month`  | `mo`     | `year / 12`        |
-| `year`   | `yr`     | `365.2425 * 86400` |
+| `id`          | `symbol` | `scale` (s)        |
+| ------------- | -------- | ------------------ |
+| `second`      | `s`      | 1                  |
+| `millisecond` | `ms`     | 0.001              |
+| `minute`      | `min`    | 60                 |
+| `hour`        | `h`      | 3600               |
+| `day`         | `d`      | 86400              |
+| `week`        | `wk`     | 604800             |
+| `month`       | `mo`     | `year / 12`        |
+| `year`        | `yr`     | `365.2425 * 86400` |
 
 **Temperature** (dimension Θ, SI = kelvin)
 
-| `id`               | `symbol` | `affine`     | `scale` | `offset`              |
-| ------------------ | -------- | ------------ | ------- | --------------------- |
-| `kelvin`           | `K`      | linear       | 1       | 0                     |
-| `celsius`          | `°C`     | absolute     | 1       | 273.15                |
-| `delta-celsius`    | `Δ°C`    | difference   | 1       | 0                     |
-| `fahrenheit`       | `°F`     | absolute     | 5/9     | `273.15 - 32×5/9`     |
-| `delta-fahrenheit` | `Δ°F`    | difference   | 5/9     | 0                     |
-| `rankine`          | `°R`     | linear       | 5/9     | 0                     |
+| `id`               | `symbol` | `affine`   | `scale` | `offset`          |
+| ------------------ | -------- | ---------- | ------- | ----------------- |
+| `kelvin`           | `K`      | linear     | 1       | 0                 |
+| `celsius`          | `°C`     | absolute   | 1       | 273.15            |
+| `delta-celsius`    | `Δ°C`    | difference | 1       | 0                 |
+| `fahrenheit`       | `°F`     | absolute   | 5/9     | `273.15 - 32×5/9` |
+| `delta-fahrenheit` | `Δ°F`    | difference | 5/9     | 0                 |
+| `rankine`          | `°R`     | linear     | 5/9     | 0                 |
 
 `offset` for fahrenheit is `255.372222...` (`273.15 − 32 × 5/9`). Compute it from those
 fractions in code; do not paste a rounded decimal. Cite SI Brochure for 273.15 and the usual
@@ -401,41 +401,41 @@ Fahrenheit–Celsius relation.
 
 **Area** (L²)
 
-| `id`                 | `symbol` | `scale` (m²)      |
-| -------------------- | -------- | ----------------- |
-| `metre-squared`      | `m²`     | 1                 |
-| `kilometre-squared`  | `km²`    | 1e6               |
-| `foot-squared`       | `ft²`    | `0.3048²`         |
-| `inch-squared`       | `in²`    | `0.0254²`         |
-| `hectare`            | `ha`     | 1e4               |
-| `acre`               | `ac`     | 4046.8564224      |
+| `id`                | `symbol` | `scale` (m²) |
+| ------------------- | -------- | ------------ |
+| `metre-squared`     | `m²`     | 1            |
+| `kilometre-squared` | `km²`    | 1e6          |
+| `foot-squared`      | `ft²`    | `0.3048²`    |
+| `inch-squared`      | `in²`    | `0.0254²`    |
+| `hectare`           | `ha`     | 1e4          |
+| `acre`              | `ac`     | 4046.8564224 |
 
 Acre = 4840 yd² with international yard. Cite NIST SP 811 (it prints a rounded factor; store
 the exact `4840 × 0.9144²`).
 
 **Volume** (L³)
 
-| `id`                   | `symbol` | `scale` (m³)            | Notes |
-| ---------------------- | -------- | ----------------------- | ----- |
-| `metre-cubed`          | `m³`     | 1                       |       |
-| `litre`                | `L`      | 0.001                   | SI    |
-| `millilitre`           | `mL`     | 1e-6                    |       |
-| `us-gallon`            | `gal`    | 0.003785411784          | 231 in³ |
-| `imperial-gallon`      | `imp gal`| 0.00454609              |       |
-| `us-fluid-ounce`       | `fl oz`  | `us-gallon / 128`       |       |
-| `imperial-fluid-ounce` | `imp fl oz` | `imperial-gallon / 160` |    |
+| `id`                   | `symbol`    | `scale` (m³)            | Notes   |
+| ---------------------- | ----------- | ----------------------- | ------- |
+| `metre-cubed`          | `m³`        | 1                       |         |
+| `litre`                | `L`         | 0.001                   | SI      |
+| `millilitre`           | `mL`        | 1e-6                    |         |
+| `us-gallon`            | `gal`       | 0.003785411784          | 231 in³ |
+| `imperial-gallon`      | `imp gal`   | 0.00454609              |         |
+| `us-fluid-ounce`       | `fl oz`     | `us-gallon / 128`       |         |
+| `imperial-fluid-ounce` | `imp fl oz` | `imperial-gallon / 160` |         |
 
 US vs imperial **symbols collide** (`gal`, `fl oz`). Distinct ids; M2 disambiguates by locale.
 M1 programmatic callers must use the ids.
 
 **Speed** (L/T)
 
-| `id`                 | `symbol` | `scale` (m/s)        |
-| -------------------- | -------- | -------------------- |
-| `metre-per-second`   | `m/s`    | 1                    |
-| `kilometre-per-hour` | `km/h`   | `1000/3600`          |
-| `mile-per-hour`      | `mph`    | `1609.344/3600`      |
-| `knot`               | `kn`     | `1852/3600`          |
+| `id`                 | `symbol` | `scale` (m/s)   |
+| -------------------- | -------- | --------------- |
+| `metre-per-second`   | `m/s`    | 1               |
+| `kilometre-per-hour` | `km/h`   | `1000/3600`     |
+| `mile-per-hour`      | `mph`    | `1609.344/3600` |
+| `knot`               | `kn`     | `1852/3600`     |
 
 That is the whole table. No energy, no pressure, no bytes, no data-rate, no `cup` / `tsp`.
 
@@ -479,30 +479,30 @@ Never throw: feed `NaN`, `Infinity`, `""` as unit id.
 
 Required cases (names kebab-case, unique in this file):
 
-| Name                         | Call                                      | Expect |
-| ---------------------------- | ----------------------------------------- | ------ |
-| `c-to-f`                     | convert 20 celsius → fahrenheit           | 68 °F  |
-| `f-to-c`                     | convert 68 fahrenheit → celsius           | 20 °C  |
-| `c-to-k`                     | convert 20 celsius → kelvin               | 293.15 K |
-| `abs-plus-abs-c`             | 20 °C + 5 °C                              | dimension-mismatch |
-| `abs-plus-delta-c`           | 20 °C + 5 Δ°C                             | 25 °C  |
-| `abs-plus-kelvin`            | 20 °C + 5 K                               | 25 °C  |
-| `abs-minus-abs`              | 25 °C − 20 °C                             | 5 Δ°C  |
-| `abs-times-two`              | 20 °C × 2                                 | dimension-mismatch |
-| `delta-times-two`            | 5 Δ°C × 2                                 | 10 Δ°C |
-| `c-to-delta-c`               | convert 20 °C → delta-celsius             | dimension-mismatch |
-| `m-to-ft`                    | 1 metre → foot                            | `1/0.3048` ft |
-| `km-plus-m`                  | 1 km + 1000 m                             | 2 km (larger wins) |
-| `bare-plus-km`               | 300 + 20 km                               | 320 km |
-| `m-times-m`                  | 10 m × 10 m                               | 100 m² |
-| `kg-times-litre`             | 3 kg × 3 L                                | unknown-unit |
-| `m-div-s`                    | 10 m / 2 s                                | 5 m/s  |
-| `sqrt-m2`                    | sqrt(4 m²)                                | 2 m    |
-| `sqrt-m`                     | sqrt(4 m)                                 | unknown-unit |
-| `m-plus-kg`                  | 1 m + 1 kg                                | dimension-mismatch |
-| `unknown-id`                 | quantity(1, "c")                          | unknown-unit token `c` |
-| `us-vs-imp-gallon`           | convert 1 us-gallon → litre vs imperial   | the two litre values from §1.3 |
-| `year-in-days`               | convert 1 year → day                      | 365.2425 |
+| Name               | Call                                    | Expect                         |
+| ------------------ | --------------------------------------- | ------------------------------ |
+| `c-to-f`           | convert 20 celsius → fahrenheit         | 68 °F                          |
+| `f-to-c`           | convert 68 fahrenheit → celsius         | 20 °C                          |
+| `c-to-k`           | convert 20 celsius → kelvin             | 293.15 K                       |
+| `abs-plus-abs-c`   | 20 °C + 5 °C                            | dimension-mismatch             |
+| `abs-plus-delta-c` | 20 °C + 5 Δ°C                           | 25 °C                          |
+| `abs-plus-kelvin`  | 20 °C + 5 K                             | 25 °C                          |
+| `abs-minus-abs`    | 25 °C − 20 °C                           | 5 Δ°C                          |
+| `abs-times-two`    | 20 °C × 2                               | dimension-mismatch             |
+| `delta-times-two`  | 5 Δ°C × 2                               | 10 Δ°C                         |
+| `c-to-delta-c`     | convert 20 °C → delta-celsius           | dimension-mismatch             |
+| `m-to-ft`          | 1 metre → foot                          | `1/0.3048` ft                  |
+| `km-plus-m`        | 1 km + 1000 m                           | 2 km (larger wins)             |
+| `bare-plus-km`     | 300 + 20 km                             | 320 km                         |
+| `m-times-m`        | 10 m × 10 m                             | 100 m²                         |
+| `kg-times-litre`   | 3 kg × 3 L                              | unknown-unit                   |
+| `m-div-s`          | 10 m / 2 s                              | 5 m/s                          |
+| `sqrt-m2`          | sqrt(4 m²)                              | 2 m                            |
+| `sqrt-m`           | sqrt(4 m)                               | unknown-unit                   |
+| `m-plus-kg`        | 1 m + 1 kg                              | dimension-mismatch             |
+| `unknown-id`       | quantity(1, "c")                        | unknown-unit token `c`         |
+| `us-vs-imp-gallon` | convert 1 us-gallon → litre vs imperial | the two litre values from §1.3 |
+| `year-in-days`     | convert 1 year → day                    | 365.2425                       |
 
 ### 6.2 `units.test.ts`
 
@@ -577,7 +577,7 @@ If it is not in §7, it is not M1.
   `quantity()` never has to accept `c`.
 - Add an `aliases` list on `UnitDef` (or a separate alias table). M1 ids stay the keys.
 - Affine rules are already enforced. The lexer only has to pick `celsius` vs `delta-celsius`
-  when the grammar says so (`20 c` is absolute; a temperature *difference* token is later
+  when the grammar says so (`20 c` is absolute; a temperature _difference_ token is later
   work if the grammar needs it).
 - `1 min` vs `1 m in ft` is lexing. The table already has both `minute` and `metre`.
 - After M2 ships, drop `todo` on the accept rows that now parse; do not invent a milestone gate.

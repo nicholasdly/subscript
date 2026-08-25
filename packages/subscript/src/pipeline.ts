@@ -2,21 +2,13 @@ import { formatQuantity } from "./format.ts";
 import { lex } from "./lex.ts";
 import { INPUT_LENGTH_LIMIT } from "./limits.ts";
 import { normalize } from "./normalize.ts";
-import { parse } from "./parse.ts";
-import {
-  add,
-  convert,
-  div,
-  mul,
-  quantity,
-  sqrt,
-  sub,
-} from "./quantity.ts";
-import { enumerateReadings, scoreReading } from "./rank.ts";
-import { rewrite } from "./rewrite.ts";
-import type { Ast } from "./token.ts";
-import type { Alternate, Result, Span, SpanKind } from "./types.ts";
 import * as numeric from "./numeric.ts";
+import { parse } from "./parse.ts";
+import { add, convert, div, mul, quantity, sqrt, sub } from "./quantity.ts";
+import { enumerateReadings, readsInAsConverter } from "./rank.ts";
+import { rewrite } from "./rewrite.ts";
+import type { Ast, Token } from "./token.ts";
+import type { Alternate, LimitName, Quantity, Result, Span, SpanKind } from "./types.ts";
 import type { TrieNode } from "./units/trie.ts";
 
 export type PipelineOutput = {
@@ -24,39 +16,50 @@ export type PipelineOutput = {
   readonly spans: readonly Span[];
 };
 
-const notAnExpression: Result = {
-  ok: false,
-  reason: { kind: "not-an-expression" },
-};
+const notAnExpression: Result = { ok: false, reason: { kind: "not-an-expression" } };
+const nothing: PipelineOutput = { result: notAnExpression, spans: [] };
 
-function spanKind(token: { kind: string; op?: string }): SpanKind {
-  if (token.kind === "number") {
-    return "number";
-  }
-  if (token.kind === "unit") {
-    return "unit";
-  }
-  if (token.kind === "converter") {
-    return "converter";
-  }
-  if (token.kind === "function") {
-    return "operator";
-  }
-  if (token.kind === "unknown") {
-    return "unknown";
-  }
-  if (token.op === "(" || token.op === ")") {
-    return "punctuation";
-  }
-  return "operator";
+function limitExceeded(limit: LimitName): Result {
+  return { ok: false, reason: { kind: "limit-exceeded", limit } };
 }
 
-function spansFor(tokens: readonly { start: number; end: number; kind: string; op?: string }[]): Span[] {
-  return tokens.map((token) => ({
-    start: token.start,
-    end: token.end,
-    kind: spanKind(token),
-  }));
+function spanKind(token: Token): SpanKind {
+  switch (token.kind) {
+    case "number":
+      return "number";
+    case "unit":
+      return "unit";
+    case "converter":
+      return "converter";
+    case "function":
+      return "operator";
+    case "unknown":
+      return "unknown";
+    case "operator":
+      return token.op === "(" || token.op === ")" ? "punctuation" : "operator";
+  }
+}
+
+/** Tokens the rewriter invented span nothing, so they colour nothing. */
+function spansFor(tokens: readonly Token[]): Span[] {
+  const spans: Span[] = [];
+  for (const token of tokens) {
+    if (token.start < token.end) {
+      spans.push({ start: token.start, end: token.end, kind: spanKind(token) });
+    }
+  }
+  return spans;
+}
+
+/** `^` is dimensionless-only: a dimensioned base is not an exponentiation we can name. */
+function power(base: Quantity, exponent: Quantity): Result {
+  if (base.unit.id !== "1" || exponent.unit.id !== "1") {
+    return {
+      ok: false,
+      reason: { kind: "dimension-mismatch", from: base.unit, to: exponent.unit },
+    };
+  }
+  return quantity(numeric.pow(base.value, exponent.value));
 }
 
 function evaluateAst(ast: Ast): Result {
@@ -67,14 +70,16 @@ function evaluateAst(ast: Ast): Result {
       return quantity(ast.value, ast.unitId);
     case "unary": {
       const inner = evaluateAst(ast.inner);
-      if (!inner.ok) {
-        return inner;
-      }
-      const neg = quantity(-1);
-      if (!neg.ok) {
-        return neg;
-      }
-      return mul(neg.value, inner.value);
+      // Negating the literal, not scaling it: `-20 °C` is a temperature, not 20 × -1.
+      return inner.ok ? quantity(-inner.value.value, inner.value.unit.id) : inner;
+    }
+    case "sqrt": {
+      const inner = evaluateAst(ast.inner);
+      return inner.ok ? sqrt(inner.value) : inner;
+    }
+    case "convert": {
+      const inner = evaluateAst(ast.expr);
+      return inner.ok ? convert(inner.value, ast.toId) : inner;
     }
     case "binary": {
       const left = evaluateAst(ast.left);
@@ -85,135 +90,86 @@ function evaluateAst(ast: Ast): Result {
       if (!right.ok) {
         return right;
       }
-      if (ast.op === "+") {
-        return add(left.value, right.value);
+      switch (ast.op) {
+        case "+":
+          return add(left.value, right.value);
+        case "-":
+          return sub(left.value, right.value);
+        case "*":
+          return mul(left.value, right.value);
+        case "/":
+          return div(left.value, right.value);
+        case "^":
+          return power(left.value, right.value);
       }
-      if (ast.op === "-") {
-        return sub(left.value, right.value);
-      }
-      if (ast.op === "*") {
-        return mul(left.value, right.value);
-      }
-      if (ast.op === "/") {
-        return div(left.value, right.value);
-      }
-      if (left.value.unit.id !== "1" || right.value.unit.id !== "1") {
-        return {
-          ok: false,
-          reason: {
-            kind: "dimension-mismatch",
-            from: left.value.unit,
-            to: right.value.unit,
-          },
-        };
-      }
-      const value = numeric.pow(left.value.value, right.value.value);
-      return quantity(value);
-    }
-    case "sqrt": {
-      const inner = evaluateAst(ast.inner);
-      if (!inner.ok) {
-        return inner;
-      }
-      return sqrt(inner.value);
-    }
-    case "convert": {
-      const inner = evaluateAst(ast.expr);
-      if (!inner.ok) {
-        return inner;
-      }
-      return convert(inner.value, ast.toId);
     }
   }
 }
 
-type Candidate = {
-  readonly score: number;
+type Reading = {
   readonly result: Result;
-  readonly tokens: ReturnType<typeof rewrite>;
+  readonly tokens: readonly Token[];
 };
 
-function qtyKey(result: Result): string | undefined {
-  if (!result.ok) {
-    return undefined;
+function sameQuantity(a: Quantity, b: Quantity): boolean {
+  return a.unit.id === b.unit.id && a.value === b.value;
+}
+
+/** Other readings that also evaluated, to a different answer than the winner's. */
+function alternatesFor(winner: Reading, succeeded: readonly Reading[]): Alternate[] {
+  const alternates: Alternate[] = [];
+  for (const reading of succeeded) {
+    if (
+      reading === winner ||
+      !reading.result.ok ||
+      !winner.result.ok ||
+      sameQuantity(reading.result.value, winner.result.value)
+    ) {
+      continue;
+    }
+    alternates.push({
+      value: reading.result.value,
+      text: formatQuantity(reading.result.value),
+      reason: readsInAsConverter(reading.tokens) ? "in as converter" : "in as inch",
+    });
   }
-  return `${result.value.unit.id}:${result.value.value}`;
+  return alternates;
 }
 
 export function runPipeline(input: string, trie: TrieNode): PipelineOutput {
   if (input.length > INPUT_LENGTH_LIMIT) {
-    return {
-      result: { ok: false, reason: { kind: "limit-exceeded", limit: "input-length" } },
-      spans: [],
-    };
+    return { result: limitExceeded("input-length"), spans: [] };
   }
 
-  const normalized = normalize(input);
-  const lexed = lex(normalized, trie);
-  const forks = enumerateReadings(lexed);
-  if (forks === undefined) {
-    return { result: notAnExpression, spans: [] };
+  const readings = enumerateReadings(lex(normalize(input), trie));
+  if (readings === undefined) {
+    return nothing;
   }
 
-  const candidates: Candidate[] = [];
-  for (const reading of forks) {
+  const evaluated: Reading[] = [];
+  for (const reading of readings) {
     const tokens = rewrite(reading);
     const parsed = parse(tokens);
-    if (!parsed.ok) {
-      if (parsed.limit !== undefined) {
-        candidates.push({
-          score: -1,
-          result: { ok: false, reason: { kind: "limit-exceeded", limit: parsed.limit } },
-          tokens,
-        });
-      }
-      continue;
+    if (parsed.ok) {
+      evaluated.push({ result: evaluateAst(parsed.ast), tokens });
+    } else if (parsed.limit !== undefined) {
+      evaluated.push({ result: limitExceeded(parsed.limit), tokens });
     }
-    const result = evaluateAst(parsed.ast);
-    const score = result.ok ? scoreReading(tokens, parsed.ast) : 0;
-    candidates.push({ score, result, tokens });
   }
 
-  const successes = candidates.filter((c) => c.result.ok);
-  const pickFrom = successes.length > 0 ? successes : candidates;
-  if (pickFrom.length === 0) {
-    return { result: notAnExpression, spans: [] };
-  }
-  pickFrom.sort((a, b) => b.score - a.score);
-  const winner = pickFrom[0];
+  const succeeded = evaluated.filter((reading) => reading.result.ok);
+  const winner =
+    succeeded.find((reading) => readsInAsConverter(reading.tokens)) ?? succeeded[0] ?? evaluated[0];
   if (winner === undefined) {
-    return { result: notAnExpression, spans: [] };
+    return nothing;
   }
-
   if (!winner.result.ok) {
     return { result: winner.result, spans: [] };
   }
 
-  const winnerKey = qtyKey(winner.result);
-  const alternates: Alternate[] = [];
-  for (const other of successes) {
-    if (other === winner) {
-      continue;
-    }
-    if (!other.result.ok) {
-      continue;
-    }
-    if (qtyKey(other.result) === winnerKey) {
-      continue;
-    }
-    alternates.push({
-      value: other.result.value,
-      text: formatQuantity(other.result.value),
-      reason: other.tokens.some((t) => t.kind === "converter" && t.converter === "in")
-        ? "in as converter"
-        : "in as inch",
-    });
-  }
-
-  const result: Result =
-    alternates.length > 0
-      ? { ...winner.result, alternates }
-      : winner.result;
-
-  return { result, spans: spansFor(winner.tokens) };
+  const alternates = alternatesFor(winner, succeeded);
+  return {
+    result: alternates.length > 0 ? { ...winner.result, alternates } : winner.result,
+    spans: spansFor(winner.tokens),
+  };
 }

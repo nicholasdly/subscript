@@ -1,187 +1,127 @@
-import type { Normalized } from "./normalize.ts";
-import type { ConverterWord, OperatorChar, Token } from "./token.ts";
-import { isLetter } from "./units/aliases.ts";
+import { charAt, isLetter, isMark, skipWhitespace } from "./chars.ts";
+import { sourceIndex, type Normalized } from "./normalize.ts";
+import type { LexToken, Located, OperatorChar } from "./token.ts";
 import { matchTrie, type TrieNode } from "./units/trie.ts";
 
-const OPERATORS = new Set<string>(["+", "-", "*", "/", "^", "(", ")"]);
+const OPERATORS: readonly OperatorChar[] = ["+", "-", "*", "/", "^", "(", ")"];
 
-function isWhitespace(ch: string): boolean {
-  return /\s/u.test(ch);
+/** Operators are single ASCII characters, so a plain character compare is enough. */
+function operatorAt(text: string, index: number): OperatorChar | undefined {
+  const ch = text.charAt(index);
+  return OPERATORS.find((operator) => operator === ch);
 }
 
-function isMark(ch: string): boolean {
-  return /\p{M}/u.test(ch);
+function isDigit(text: string, index: number): boolean {
+  const code = text.charCodeAt(index);
+  return code >= 48 && code <= 57;
 }
 
-function origSpan(
-  map: number[],
-  origLength: number,
-  start: number,
-  end: number,
-): { start: number; end: number } {
-  if (start >= end) {
-    const at = start < map.length ? map[start] : origLength;
-    return { start: at ?? origLength, end: at ?? origLength };
-  }
-  const origStart = map[start] ?? origLength;
-  const origEnd = end >= map.length ? origLength : (map[end] ?? origLength);
-  return { start: origStart, end: Math.max(origEnd, origStart) };
-}
-
-function skipWs(text: string, i: number): number {
-  let j = i;
-  while (j < text.length) {
-    const cp = text.codePointAt(j);
-    if (cp === undefined) {
-      break;
-    }
-    const ch = String.fromCodePoint(cp);
-    if (!isWhitespace(ch)) {
-      break;
-    }
-    j += ch.length;
-  }
-  return j;
-}
-
-function parseNumber(text: string, start: number): { value: number; end: number } | undefined {
-  let i = start;
-  let sawDigit = false;
-  while (i < text.length && text.charCodeAt(i) >= 48 && text.charCodeAt(i) <= 57) {
-    sawDigit = true;
+/** ASCII digits with at most one `.`. No sign, no exponent, no separators. */
+function readNumber(text: string, from: number): { value: number; end: number } | undefined {
+  let i = from;
+  let digits = 0;
+  while (isDigit(text, i)) {
     i += 1;
+    digits += 1;
   }
-  if (i < text.length && text.charAt(i) === ".") {
+  if (text.charAt(i) === ".") {
     i += 1;
-    while (i < text.length && text.charCodeAt(i) >= 48 && text.charCodeAt(i) <= 57) {
-      sawDigit = true;
+    while (isDigit(text, i)) {
       i += 1;
+      digits += 1;
     }
   }
-  if (!sawDigit) {
+  if (digits === 0) {
     return undefined;
   }
-  if (i === start) {
-    return undefined;
-  }
-  const raw = text.slice(start, i);
-  const value = Number(raw);
-  if (!Number.isFinite(value)) {
-    return undefined;
-  }
-  return { value, end: i };
+  const value = Number(text.slice(from, i));
+  return Number.isFinite(value) ? { value, end: i } : undefined;
 }
 
-function peekNonWs(text: string, i: number): string {
-  const j = skipWs(text, i);
-  if (j >= text.length) {
-    return "";
-  }
-  return String.fromCodePoint(text.codePointAt(j) ?? 32);
-}
-
-function unknownRun(text: string, start: number): number {
-  const first = String.fromCodePoint(text.codePointAt(start) ?? 32);
+/** A maximal run of letters and marks, or the single character that starts it. */
+function readUnknown(text: string, from: number): number {
+  const first = charAt(text, from);
   if (!isLetter(first) && !isMark(first)) {
-    return start + first.length;
+    return from + first.length;
   }
-  let i = start;
-  while (i < text.length) {
-    const ch = String.fromCodePoint(text.codePointAt(i) ?? 32);
+  let i = from;
+  for (;;) {
+    const ch = charAt(text, i);
     if (!isLetter(ch) && !isMark(ch)) {
-      break;
+      return i;
     }
     i += ch.length;
   }
-  return i;
 }
 
-function tokenAt(
-  kind: Token["kind"],
-  raw: string,
-  span: { start: number; end: number },
-  extra: Partial<Token> = {},
-): Token {
-  return {
-    kind,
-    start: span.start,
-    end: span.end,
-    raw,
-    ...extra,
-  };
-}
-
-export function lex(normalized: Normalized, trie: TrieNode): Token[] {
-  const { text, map, origLength } = normalized;
-  const tokens: Token[] = [];
+export function lex(normalized: Normalized, trie: TrieNode): LexToken[] {
+  const { text } = normalized;
+  const tokens: LexToken[] = [];
   let i = 0;
 
+  const at = (from: number, to: number): Located => ({
+    start: sourceIndex(normalized, from),
+    end: sourceIndex(normalized, to),
+    raw: text.slice(from, to),
+  });
+
   while (i < text.length) {
-    i = skipWs(text, i);
+    i = skipWhitespace(text, i);
     if (i >= text.length) {
       break;
     }
 
-    const num = parseNumber(text, i);
-    if (num !== undefined) {
-      const span = origSpan(map, origLength, i, num.end);
-      tokens.push(tokenAt("number", text.slice(i, num.end), span, { value: num.value }));
-      i = num.end;
+    const number = readNumber(text, i);
+    if (number !== undefined) {
+      tokens.push({ ...at(i, number.end), kind: "number", value: number.value });
+      i = number.end;
       continue;
     }
 
-    const hit = matchTrie(trie, text, i);
-    if (hit !== undefined) {
-      const end = i + hit.length;
-      const span = origSpan(map, origLength, i, end);
-      const raw = text.slice(i, end);
-      if (hit.kind === "function") {
-        if (peekNonWs(text, end) === "(") {
-          tokens.push(tokenAt("function", raw, span, { name: "sqrt" }));
-        } else {
-          tokens.push(tokenAt("unknown", raw, span));
-        }
-        i = end;
-        continue;
+    const match = matchTrie(trie, text, i);
+    if (match !== undefined) {
+      const end = i + match.length;
+      const located = at(i, end);
+      const { value } = match;
+      switch (value.kind) {
+        case "unit":
+          tokens.push({ ...located, kind: "unit", unitId: value.unitId });
+          break;
+        case "converter":
+          tokens.push({ ...located, kind: "converter", converter: value.converter });
+          break;
+        case "ambiguous":
+          tokens.push({
+            ...located,
+            kind: "ambiguous",
+            converter: value.converter,
+            unitId: value.unitId,
+          });
+          break;
+        case "function":
+          // `sqrt` is a function only when a `(` follows; otherwise it is a word.
+          tokens.push(
+            charAt(text, skipWhitespace(text, end)) === "("
+              ? { ...located, kind: "function", name: value.name }
+              : { ...located, kind: "unknown" },
+          );
+          break;
       }
-      if (hit.kind === "ambiguous") {
-        const unit: Token = tokenAt("unit", raw, span, { unitId: hit.unitId });
-        const converter: Token = tokenAt("converter", raw, span, {
-          converter: hit.converter,
-          alt: unit,
-        });
-        tokens.push(converter);
-        i = end;
-        continue;
-      }
-      if (hit.kind === "unit") {
-        tokens.push(tokenAt("unit", raw, span, { unitId: hit.unitId }));
-        i = end;
-        continue;
-      }
-      tokens.push(tokenAt("converter", raw, span, { converter: hit.converter }));
       i = end;
       continue;
     }
 
-    const ch = String.fromCodePoint(text.codePointAt(i) ?? 32);
-    if (OPERATORS.has(ch)) {
-      const end = i + ch.length;
-      tokens.push(
-        tokenAt("operator", ch, origSpan(map, origLength, i, end), {
-          op: ch as OperatorChar,
-        }),
-      );
-      i = end;
+    const op = operatorAt(text, i);
+    if (op !== undefined) {
+      tokens.push({ ...at(i, i + 1), kind: "operator", op });
+      i += 1;
       continue;
     }
 
-    const end = unknownRun(text, i);
-    tokens.push(tokenAt("unknown", text.slice(i, end), origSpan(map, origLength, i, end)));
+    const end = readUnknown(text, i);
+    tokens.push({ ...at(i, end), kind: "unknown" });
     i = end;
   }
 
   return tokens;
 }
-
-export type { ConverterWord };

@@ -1,8 +1,4 @@
-import {
-  dimension,
-  rational,
-  type Dimension,
-} from "../dimension.ts";
+import { dimension, rational, type Dimension } from "../dimension.ts";
 
 export type AffineKind = "linear" | "absolute" | "difference";
 

@@ -1,14 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import {
-  add,
-  div,
-  isFiniteNumber,
-  mul,
-  sqrt,
-  sub,
-} from "../src/numeric.ts";
+import { add, div, isFiniteNumber, mul, sqrt, sub } from "../src/numeric.ts";
 
 test("add, sub, mul, div wrap float64 arithmetic", () => {
   assert.equal(add(2, 3), 5);

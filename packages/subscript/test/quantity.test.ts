@@ -132,16 +132,8 @@ test("unknown-id", () => {
 
 test("us-vs-imp-gallon", () => {
   const inch = 0.0254;
-  assertQty(
-    convert(q(1, "us-gallon"), "litre"),
-    "litre",
-    (231 * inch * inch * inch) / 0.001,
-  );
-  assertQty(
-    convert(q(1, "imperial-gallon"), "litre"),
-    "litre",
-    (4.54609 * 0.001) / 0.001,
-  );
+  assertQty(convert(q(1, "us-gallon"), "litre"), "litre", (231 * inch * inch * inch) / 0.001);
+  assertQty(convert(q(1, "imperial-gallon"), "litre"), "litre", (4.54609 * 0.001) / 0.001);
 });
 
 test("year-in-days", () => {

@@ -77,7 +77,7 @@ The GNU Units database is GPL-3.0-or-later and the license header is in the data
 primary sources GNU Units cites — NIST SP 811 and CODATA — and record the source on each entry.
 The underlying facts are not copyrightable; the compilation is.
 
-This is real, boring work, and it is also the moat. The alias table *is* the product (§14), and
+This is real, boring work, and it is also the moat. The alias table _is_ the product (§14), and
 building it ourselves is the only way we control it.
 
 ---
@@ -112,7 +112,7 @@ import { createSubscript } from "subscript";
 const subscript = createSubscript({
   locale: "en-US",
   now: () => Temporal.Now.instant(), // injected, never read from the ambient clock
-  rates: myRateProvider,             // opt-in; absent means currency returns a typed "unconfigured"
+  rates: myRateProvider, // opt-in; absent means currency returns a typed "unconfigured"
 });
 
 subscript.evaluate("100 usd in eur");
@@ -154,21 +154,21 @@ type Result =
   | { ok: false; reason: Failure };
 
 type Failure =
-  | { kind: "not-an-expression" }                     // strict consumption failed
+  | { kind: "not-an-expression" } // strict consumption failed
   | { kind: "dimension-mismatch"; from: Unit; to: Unit }
   | { kind: "unknown-unit"; token: string }
   | { kind: "ambiguous"; token: string; candidates: Candidate[] }
-  | { kind: "rate-unavailable"; currency: string }    // provider not configured
-  | { kind: "rate-pending"; currency: string }        // provider fetching
-  | { kind: "precision-loss" }                        // §10, refusing rather than lying
-  | { kind: "limit-exceeded"; limit: LimitName };     // §5.4
+  | { kind: "rate-unavailable"; currency: string } // provider not configured
+  | { kind: "rate-pending"; currency: string } // provider fetching
+  | { kind: "precision-loss" } // §10, refusing rather than lying
+  | { kind: "limit-exceeded"; limit: LimitName }; // §5.4
 ```
 
 `not-an-expression` is the common case and must be cheap — a launcher calls this on every
 keystroke and discards most results.
 
 `alternates` is where we honor §7.3: when a token is genuinely ambiguous (`oz`, `$`, `IST`), pick
-the locale-biased default *and* return the alternative, so a host can offer it. Silently choosing is
+the locale-biased default _and_ return the alternative, so a host can offer it. Silently choosing is
 the confident-wrongness failure mode; refusing to choose is unhelpful. Returning both is neither.
 
 ---
@@ -177,7 +177,7 @@ the confident-wrongness failure mode; refusing to choose is unhelpful. Returning
 
 The pipeline is settled — every mature system in the space converges on it (§2): normalize → lex →
 rewrite → parse → evaluate → format. What follows is per-domain, and the recurring theme is that
-each domain contributes a *lexer vocabulary* and an *evaluation rule*, not its own parser.
+each domain contributes a _lexer vocabulary_ and an _evaluation rule_, not its own parser.
 
 ### 3.1 Arithmetic
 
@@ -215,7 +215,7 @@ nothing, because "kg·L" is not a unit anyone recognizes).
 
 Calendar-unit lengths (how many days in a year, in a month) are named, documented constants, not
 values buried in a conversion table (§6). Any answer is wrong somewhere; an undocumented answer is
-wrong *and* unexplainable.
+wrong _and_ unexplainable.
 
 ### 3.3 Lexing — where the actual difficulty is
 
@@ -289,7 +289,7 @@ Resolving `sf` → `America/Los_Angeles` is not solved by any library. Our posit
   coverage (§9.3). `IST` is three zones and `CST` is three zones; Soulver's answer is to document
   that `CST` means US Central and that Chinese Standard Time is simply not reachable by
   abbreviation. That is better than a complete but ambiguous mapping.
-- Distinguish `PST` from `PDT` and *also* offer `pacific time` as a zone-valued third option, so the
+- Distinguish `PST` from `PDT` and _also_ offer `pacific time` as a zone-valued third option, so the
   user can say which they meant (§9.3).
 - For countries spanning zones, use the capital city, and say so in the docs (§9.2). Arbitrary but
   documented beats failing.
@@ -319,7 +319,7 @@ Cheap, and everything else depends on it.
   with a fixed reference instant so relative dates are reproducible (§12, Duckling).
 - Build the **negative corpus** alongside it, in the same harness. Per §5.2, out-of-scope recall is
   the metric that actually matters — the best systems in the literature manage 66% — and the corpus
-  of things that must *not* parse is at least as important as the corpus of things that must.
+  of things that must _not_ parse is at least as important as the corpus of things that must.
 - Public API skeleton: `evaluate`, `createSubscript`, the `Result` union. Every input returns
   `{ ok: false, reason: { kind: "not-an-expression" } }`. This makes the contract reviewable before
   any behavior exists.
@@ -485,8 +485,8 @@ deserves a real answer rather than a shrug.
 
 The honest answer: the reasons to build are control over the alias table, control over trigger
 behavior, and control over the ambiguity policy — which is to say, control over the three things
-that *are* the product. Zero dependencies and a smaller, more opinionated surface are the
-differentiators. The reason *not* to build is that the parser looks interesting, and the parser is
+that _are_ the product. Zero dependencies and a smaller, more opinionated surface are the
+differentiators. The reason _not_ to build is that the parser looks interesting, and the parser is
 the part that finishes. If in six months our alias table and ambiguity policy are not visibly better
 than `solve-engine`'s, the project has no reason to exist and we should say so out loud.
 
@@ -505,7 +505,8 @@ From §16, the subset that has to be answered on the current path. The rest can 
 milestone that needs it.
 
 **Before M1 (unit data):**
-- Is there *any* permissively-licensed, actively-maintained unit database? If yes, M1's data work
+
+- Is there _any_ permissively-licensed, actively-maintained unit database? If yes, M1's data work
   shrinks considerably.
 - Re-derive the US/imperial volume divergence figures from primary sources rather than repeating
   them.
@@ -513,22 +514,26 @@ milestone that needs it.
   most interesting unexamined lead in the research, and M1 is exactly when it is cheap to learn from.
 
 **Before M3 (formatting):**
+
 - Exact contents of the `Intl.NumberFormat` sanctioned unit list, and the behavior of
   `Intl.supportedValuesOf("unit")` — this determines how large our own display-name table must be.
 - Does CLDR `unitPreferenceData` exist, and does it answer "what unit should the result be in" by
   locale and usage?
 
 **Before M4 (currency):**
+
 - Terms of the free no-key rate providers, especially whether caching and redistribution are
   permitted.
 - An authoritative source for ISO 4217 minor-unit exponents.
 - Severity of ISO-code-versus-English-word collisions in practice.
 
 **Before M5 (time zones):**
+
 - What `vvo/tzdb` actually contains, how it is generated, its size and license.
 - Exact semantics of `ZonedDateTime`'s `disambiguation` and `offset` options, for whenever we back
   the internal interface with `Temporal`.
 - Confirm real 2026 DST transition dates before using any as test fixtures.
 
 **Worth doing regardless:**
+
 - A close read of `solve-engine`'s source, per §5.8.

@@ -1,52 +1,43 @@
 export type Normalized = {
   readonly text: string;
-  readonly map: number[];
-  readonly origLength: number;
+  /**
+   * Source index of every character in `text`, plus one entry past the end, so
+   * a token running from `i` to `j` maps to `starts[i]`..`starts[j]`.
+   */
+  readonly starts: readonly number[];
 };
 
-const OPERATOR_ONE_TO_ONE: Record<string, string> = {
-  "\u2212": "-",
-  "\u00d7": "*",
-  "\u22c5": "*",
-  "\u00f7": "/",
-  "\u27f6": "\u2192",
+/** Characters rewritten before lexing. A replacement may be longer than one character. */
+const REWRITES: Record<string, string> = {
+  "\u2212": "-", // minus sign
+  "\u00d7": "*", // multiplication sign
+  "\u22c5": "*", // dot operator
+  "\u00f7": "/", // division sign
+  "\u27f6": "\u2192", // long rightwards arrow; the lexer knows one arrow
+  "\u2103": "\u00b0C", // degree celsius
+  "\u2109": "\u00b0F", // degree fahrenheit
 };
-
-const OPERATOR_EXPAND: Record<string, string> = {
-  "\u2103": "\u00b0C",
-  "\u2109": "\u00b0F",
-};
-
-function appendMapped(text: string, map: number[], out: string, origIndex: number): string {
-  for (let k = 0; k < out.length; k++) {
-    text += out.charAt(k);
-    map.push(origIndex);
-  }
-  return text;
-}
 
 export function normalize(input: string): Normalized {
-  const nfc = input.normalize("NFC");
-  let text = "";
-  const map: number[] = [];
+  const source = input.normalize("NFC");
+  const out: string[] = [];
+  const starts: number[] = [];
+  let index = 0;
 
-  for (let i = 0; i < nfc.length; ) {
-    const cp = nfc.codePointAt(i);
-    if (cp === undefined) {
-      break;
+  for (const ch of source) {
+    const replacement = REWRITES[ch] ?? ch;
+    out.push(replacement);
+    // One entry per UTF-16 unit, because `text` is indexed that way.
+    for (let unit = 0; unit < replacement.length; unit += 1) {
+      starts.push(index);
     }
-    const ch = String.fromCodePoint(cp);
-    const next = i + ch.length;
-    const expanded = OPERATOR_EXPAND[ch];
-    if (expanded !== undefined) {
-      text = appendMapped(text, map, expanded, i);
-      i = next;
-      continue;
-    }
-    const mapped = OPERATOR_ONE_TO_ONE[ch] ?? ch;
-    text = appendMapped(text, map, mapped, i);
-    i = next;
+    index += ch.length;
   }
+  starts.push(source.length);
 
-  return { text, map, origLength: nfc.length };
+  return { text: out.join(""), starts };
+}
+
+export function sourceIndex(normalized: Normalized, index: number): number {
+  return normalized.starts[index] ?? 0;
 }

@@ -7,14 +7,14 @@ import {
   scaleDimension,
   type Dimension,
 } from "./dimension.ts";
-import * as numeric from "./numeric.ts";
 import { formatQuantity } from "./format.ts";
-import type { Quantity, Result, Unit } from "./types.ts";
-import type { AffineKind, UnitDef } from "./units/kinds.ts";
-import { lookupUnit, toPublic, unitsMatching } from "./units/lookup.ts";
+import * as numeric from "./numeric.ts";
+import type { Quantity, Result } from "./types.ts";
+import type { UnitDef } from "./units/kinds.ts";
+import { findResultUnit, lookupUnit, toPublic } from "./units/lookup.ts";
+import { DIMENSIONLESS } from "./units/table.ts";
 
-const DIMENSIONLESS_ID = "1";
-const SCALE_EPS = 1e-12;
+const HALF = rational(1, 2);
 
 function precisionLoss(): Result {
   return { ok: false, reason: { kind: "precision-loss" } };
@@ -24,31 +24,19 @@ function unknownUnit(token: string): Result {
   return { ok: false, reason: { kind: "unknown-unit", token } };
 }
 
-function mismatch(from: Unit, to: Unit): Result {
-  return { ok: false, reason: { kind: "dimension-mismatch", from, to } };
+function mismatch(from: UnitDef, to: UnitDef): Result {
+  return {
+    ok: false,
+    reason: { kind: "dimension-mismatch", from: toPublic(from), to: toPublic(to) },
+  };
 }
 
 function ok(value: number, def: UnitDef): Result {
   if (!numeric.isFiniteNumber(value)) {
     return precisionLoss();
   }
-  const quantityValue: Quantity = { value, unit: toPublic(def) };
-  return { ok: true, value: quantityValue, text: formatQuantity(quantityValue) };
-}
-
-function resolve(qty: Quantity): UnitDef | Result {
-  const def = lookupUnit(qty.unit.id);
-  if (def === undefined) {
-    return unknownUnit(qty.unit.id);
-  }
-  if (!numeric.isFiniteNumber(qty.value)) {
-    return precisionLoss();
-  }
-  return def;
-}
-
-function isDef(value: UnitDef | Result): value is UnitDef {
-  return "scale" in value;
+  const result: Quantity = { value, unit: toPublic(def) };
+  return { ok: true, value: result, text: formatQuantity(result) };
 }
 
 function toSI(value: number, def: UnitDef): number {
@@ -59,275 +47,185 @@ function fromSI(si: number, def: UnitDef): number {
   return numeric.div(numeric.sub(si, def.offset), def.scale);
 }
 
-function scalesEqual(a: number, b: number): boolean {
-  return (
-    Math.abs(numeric.sub(a, b)) <=
-    SCALE_EPS * Math.max(1, Math.abs(a), Math.abs(b))
-  );
+/** Runs `compute` once the operand has a known unit and a usable value. */
+function withUnit(qty: Quantity, compute: (def: UnitDef) => Result): Result {
+  const def = lookupUnit(qty.unit.id);
+  if (def === undefined) {
+    return unknownUnit(qty.unit.id);
+  }
+  if (!numeric.isFiniteNumber(qty.value)) {
+    return precisionLoss();
+  }
+  return compute(def);
 }
 
-function canConvert(from: AffineKind, to: AffineKind): boolean {
-  if (from === to) {
-    return true;
-  }
-  if (from === "absolute" && to === "difference") {
-    return false;
-  }
-  if (from === "difference" && to === "absolute") {
-    return false;
-  }
-  return true;
+function withUnits(
+  a: Quantity,
+  b: Quantity,
+  compute: (aDef: UnitDef, bDef: UnitDef) => Result,
+): Result {
+  return withUnit(a, (aDef) => withUnit(b, (bDef) => compute(aDef, bDef)));
 }
 
-function findResultUnit(dim: Dimension, targetScale: number): UnitDef | undefined {
-  const matches = unitsMatching(dim).filter((unit) => unit.affine !== "absolute");
-  const exact = matches.find((unit) => scalesEqual(unit.scale, targetScale));
-  if (exact !== undefined) {
-    return exact;
+/**
+ * Names the outcome of an operation that changed the dimension. A result is
+ * never an absolute temperature, so `token` reports the compound we cannot name.
+ */
+function derived(si: number, dim: Dimension, scale: number, token: string): Result {
+  if (isDimensionless(dim)) {
+    return ok(si, DIMENSIONLESS);
   }
-  return matches.find((unit) => scalesEqual(unit.scale, 1));
+  const def = findResultUnit(dim, scale);
+  return def === undefined ? unknownUnit(token) : ok(fromSI(si, def), def);
+}
+
+function symbolOf(def: UnitDef): string {
+  return def.symbol || def.id;
 }
 
 function largerUnit(a: UnitDef, b: UnitDef): UnitDef {
   return a.scale >= b.scale ? a : b;
 }
 
-function compoundToken(left: UnitDef, right: UnitDef | undefined, op: "·" | "/" | "√"): string {
-  if (op === "√") {
-    return `√${left.symbol || left.id}`;
-  }
-  const a = left.symbol || left.id;
-  const b = right === undefined ? "" : right.symbol || right.id;
-  return `${a}${op}${b}`;
-}
-
-export function quantity(value: number, unitId = DIMENSIONLESS_ID): Result {
+export function quantity(value: number, unitId: string = DIMENSIONLESS.id): Result {
   if (!numeric.isFiniteNumber(value)) {
     return precisionLoss();
   }
   const def = lookupUnit(unitId);
-  if (def === undefined) {
-    return unknownUnit(unitId);
-  }
-  return ok(value, def);
+  return def === undefined ? unknownUnit(unitId) : ok(value, def);
+}
+
+/** An absolute temperature and a temperature interval are not the same quantity. */
+function convertible(from: UnitDef, to: UnitDef): boolean {
+  const absoluteToInterval = from.affine === "absolute" && to.affine === "difference";
+  const intervalToAbsolute = from.affine === "difference" && to.affine === "absolute";
+  return !absoluteToInterval && !intervalToAbsolute;
 }
 
 export function convert(qty: Quantity, toId: string): Result {
-  const fromDef = resolve(qty);
-  if (!isDef(fromDef)) {
-    return fromDef;
-  }
-  const toDef = lookupUnit(toId);
-  if (toDef === undefined) {
-    return unknownUnit(toId);
-  }
-  if (!dimensionsEqual(fromDef.dimension, toDef.dimension)) {
-    return mismatch(toPublic(fromDef), toPublic(toDef));
-  }
-  if (!canConvert(fromDef.affine, toDef.affine)) {
-    return mismatch(toPublic(fromDef), toPublic(toDef));
-  }
-  return ok(fromSI(toSI(qty.value, fromDef), toDef), toDef);
-}
-
-function addAssimilated(bare: number, other: Quantity, otherDef: UnitDef): Result {
-  return ok(numeric.add(other.value, bare), otherDef);
+  return withUnit(qty, (from) => {
+    const to = lookupUnit(toId);
+    if (to === undefined) {
+      return unknownUnit(toId);
+    }
+    if (!dimensionsEqual(from.dimension, to.dimension) || !convertible(from, to)) {
+      return mismatch(from, to);
+    }
+    return ok(fromSI(toSI(qty.value, from), to), to);
+  });
 }
 
 export function add(a: Quantity, b: Quantity): Result {
-  const aDef = resolve(a);
-  if (!isDef(aDef)) {
-    return aDef;
-  }
-  const bDef = resolve(b);
-  if (!isDef(bDef)) {
-    return bDef;
-  }
+  return withUnits(a, b, (aDef, bDef) => {
+    // A bare number takes on the other operand's unit.
+    if (isDimensionless(bDef.dimension)) {
+      return ok(numeric.add(a.value, b.value), aDef);
+    }
+    if (isDimensionless(aDef.dimension)) {
+      return ok(numeric.add(b.value, a.value), bDef);
+    }
+    if (!dimensionsEqual(aDef.dimension, bDef.dimension)) {
+      return mismatch(aDef, bDef);
+    }
+    // Two absolute temperatures have no sum; one of them must be an interval.
+    if (aDef.affine === "absolute" && bDef.affine === "absolute") {
+      return mismatch(aDef, bDef);
+    }
 
-  const aNone = isDimensionless(aDef.dimension);
-  const bNone = isDimensionless(bDef.dimension);
-  if (aNone && bNone) {
-    return ok(numeric.add(a.value, b.value), aDef);
-  }
-  if (aNone) {
-    return addAssimilated(a.value, b, bDef);
-  }
-  if (bNone) {
-    return addAssimilated(b.value, a, aDef);
-  }
-  if (!dimensionsEqual(aDef.dimension, bDef.dimension)) {
-    return mismatch(toPublic(aDef), toPublic(bDef));
-  }
-
-  if (aDef.affine === "absolute" && bDef.affine === "absolute") {
-    return mismatch(toPublic(aDef), toPublic(bDef));
-  }
-  if (aDef.affine === "absolute") {
-    return ok(fromSI(numeric.add(toSI(a.value, aDef), toSI(b.value, bDef)), aDef), aDef);
-  }
-  if (bDef.affine === "absolute") {
-    return ok(fromSI(numeric.add(toSI(a.value, aDef), toSI(b.value, bDef)), bDef), bDef);
-  }
-
-  const dest = largerUnit(aDef, bDef);
-  return ok(fromSI(numeric.add(toSI(a.value, aDef), toSI(b.value, bDef)), dest), dest);
+    const dest =
+      aDef.affine === "absolute"
+        ? aDef
+        : bDef.affine === "absolute"
+          ? bDef
+          : largerUnit(aDef, bDef);
+    return ok(fromSI(numeric.add(toSI(a.value, aDef), toSI(b.value, bDef)), dest), dest);
+  });
 }
 
-function differenceCounterpart(def: UnitDef): UnitDef | undefined {
-  if (def.affine === "absolute") {
-    return def.differenceId === undefined ? undefined : lookupUnit(def.differenceId);
-  }
-  return def;
+function intervalUnit(def: UnitDef): UnitDef | undefined {
+  return def.differenceId === undefined ? undefined : lookupUnit(def.differenceId);
 }
 
 export function sub(a: Quantity, b: Quantity): Result {
-  const aDef = resolve(a);
-  if (!isDef(aDef)) {
-    return aDef;
-  }
-  const bDef = resolve(b);
-  if (!isDef(bDef)) {
-    return bDef;
-  }
-
-  const aNone = isDimensionless(aDef.dimension);
-  const bNone = isDimensionless(bDef.dimension);
-  if (aNone && bNone) {
-    return ok(numeric.sub(a.value, b.value), aDef);
-  }
-  if (bNone) {
-    return ok(numeric.sub(a.value, b.value), aDef);
-  }
-  if (aNone) {
-    if (bDef.affine === "absolute") {
-      return mismatch(toPublic(aDef), toPublic(bDef));
+  return withUnits(a, b, (aDef, bDef) => {
+    if (isDimensionless(bDef.dimension)) {
+      return ok(numeric.sub(a.value, b.value), aDef);
     }
-    return ok(numeric.sub(a.value, b.value), bDef);
-  }
-  if (!dimensionsEqual(aDef.dimension, bDef.dimension)) {
-    return mismatch(toPublic(aDef), toPublic(bDef));
-  }
-
-  if (aDef.affine === "absolute" && bDef.affine === "absolute") {
-    const delta = differenceCounterpart(aDef);
-    if (delta === undefined) {
-      return mismatch(toPublic(aDef), toPublic(bDef));
+    if (isDimensionless(aDef.dimension)) {
+      return bDef.affine === "absolute"
+        ? mismatch(aDef, bDef)
+        : ok(numeric.sub(a.value, b.value), bDef);
     }
-    return ok(fromSI(numeric.sub(toSI(a.value, aDef), toSI(b.value, bDef)), delta), delta);
-  }
-  if (aDef.affine === "absolute") {
-    return ok(fromSI(numeric.sub(toSI(a.value, aDef), toSI(b.value, bDef)), aDef), aDef);
-  }
-  if (bDef.affine === "absolute") {
-    return mismatch(toPublic(aDef), toPublic(bDef));
-  }
+    if (!dimensionsEqual(aDef.dimension, bDef.dimension)) {
+      return mismatch(aDef, bDef);
+    }
+    // Subtracting an absolute temperature only makes sense from another one.
+    if (bDef.affine === "absolute" && aDef.affine !== "absolute") {
+      return mismatch(aDef, bDef);
+    }
 
-  const dest = largerUnit(aDef, bDef);
-  return ok(fromSI(numeric.sub(toSI(a.value, aDef), toSI(b.value, bDef)), dest), dest);
+    // The difference between two absolute temperatures is an interval.
+    const dest =
+      aDef.affine === "absolute"
+        ? bDef.affine === "absolute"
+          ? intervalUnit(aDef)
+          : aDef
+        : largerUnit(aDef, bDef);
+    if (dest === undefined) {
+      return mismatch(aDef, bDef);
+    }
+    return ok(fromSI(numeric.sub(toSI(a.value, aDef), toSI(b.value, bDef)), dest), dest);
+  });
 }
 
 export function mul(a: Quantity, b: Quantity): Result {
-  const aDef = resolve(a);
-  if (!isDef(aDef)) {
-    return aDef;
-  }
-  const bDef = resolve(b);
-  if (!isDef(bDef)) {
-    return bDef;
-  }
-  if (aDef.affine === "absolute" || bDef.affine === "absolute") {
-    return mismatch(toPublic(aDef), toPublic(bDef));
-  }
-
-  const aNone = isDimensionless(aDef.dimension);
-  const bNone = isDimensionless(bDef.dimension);
-  if (aNone && bNone) {
-    return ok(numeric.mul(a.value, b.value), aDef);
-  }
-  if (aNone) {
-    return ok(numeric.mul(a.value, b.value), bDef);
-  }
-  if (bNone) {
-    return ok(numeric.mul(a.value, b.value), aDef);
-  }
-
-  const dim = mulDimensions(aDef.dimension, bDef.dimension);
-  if (isDimensionless(dim)) {
-    const dimensionless = lookupUnit(DIMENSIONLESS_ID);
-    if (dimensionless === undefined) {
-      return unknownUnit(DIMENSIONLESS_ID);
+  return withUnits(a, b, (aDef, bDef) => {
+    if (aDef.affine === "absolute" || bDef.affine === "absolute") {
+      return mismatch(aDef, bDef);
     }
-    return ok(numeric.mul(toSI(a.value, aDef), toSI(b.value, bDef)), dimensionless);
-  }
-  const dest = findResultUnit(dim, numeric.mul(aDef.scale, bDef.scale));
-  if (dest === undefined) {
-    return unknownUnit(compoundToken(aDef, bDef, "·"));
-  }
-  return ok(fromSI(numeric.mul(toSI(a.value, aDef), toSI(b.value, bDef)), dest), dest);
+    // Scaling by a bare number keeps the unit; deriving one would lose the interval.
+    if (isDimensionless(bDef.dimension)) {
+      return ok(numeric.mul(a.value, b.value), aDef);
+    }
+    if (isDimensionless(aDef.dimension)) {
+      return ok(numeric.mul(a.value, b.value), bDef);
+    }
+    return derived(
+      numeric.mul(toSI(a.value, aDef), toSI(b.value, bDef)),
+      mulDimensions(aDef.dimension, bDef.dimension),
+      numeric.mul(aDef.scale, bDef.scale),
+      `${symbolOf(aDef)}\u00b7${symbolOf(bDef)}`,
+    );
+  });
 }
 
 export function div(a: Quantity, b: Quantity): Result {
-  const aDef = resolve(a);
-  if (!isDef(aDef)) {
-    return aDef;
-  }
-  const bDef = resolve(b);
-  if (!isDef(bDef)) {
-    return bDef;
-  }
-  if (aDef.affine === "absolute" || bDef.affine === "absolute") {
-    return mismatch(toPublic(aDef), toPublic(bDef));
-  }
-
-  const aNone = isDimensionless(aDef.dimension);
-  const bNone = isDimensionless(bDef.dimension);
-  if (bNone) {
-    return ok(numeric.div(a.value, b.value), aDef);
-  }
-  if (aNone) {
-    const dim = divDimensions(aDef.dimension, bDef.dimension);
-    const dest = findResultUnit(dim, numeric.div(1, bDef.scale));
-    if (dest === undefined) {
-      return unknownUnit(compoundToken(aDef, bDef, "/"));
+  return withUnits(a, b, (aDef, bDef) => {
+    if (aDef.affine === "absolute" || bDef.affine === "absolute") {
+      return mismatch(aDef, bDef);
     }
-    return ok(fromSI(numeric.div(toSI(a.value, aDef), toSI(b.value, bDef)), dest), dest);
-  }
-
-  const dim = divDimensions(aDef.dimension, bDef.dimension);
-  if (isDimensionless(dim)) {
-    const dimensionless = lookupUnit(DIMENSIONLESS_ID);
-    if (dimensionless === undefined) {
-      return unknownUnit(DIMENSIONLESS_ID);
+    if (isDimensionless(bDef.dimension)) {
+      return ok(numeric.div(a.value, b.value), aDef);
     }
-    return ok(numeric.div(toSI(a.value, aDef), toSI(b.value, bDef)), dimensionless);
-  }
-  const dest = findResultUnit(dim, numeric.div(aDef.scale, bDef.scale));
-  if (dest === undefined) {
-    return unknownUnit(compoundToken(aDef, bDef, "/"));
-  }
-  return ok(fromSI(numeric.div(toSI(a.value, aDef), toSI(b.value, bDef)), dest), dest);
+    return derived(
+      numeric.div(toSI(a.value, aDef), toSI(b.value, bDef)),
+      divDimensions(aDef.dimension, bDef.dimension),
+      numeric.div(aDef.scale, bDef.scale),
+      `${symbolOf(aDef)}/${symbolOf(bDef)}`,
+    );
+  });
 }
 
 export function sqrt(qty: Quantity): Result {
-  const def = resolve(qty);
-  if (!isDef(def)) {
-    return def;
-  }
-  if (def.affine === "absolute") {
-    return mismatch(toPublic(def), toPublic(def));
-  }
-  const dim = scaleDimension(def.dimension, rational(1, 2));
-  const si = numeric.sqrt(toSI(qty.value, def));
-  if (isDimensionless(dim)) {
-    const dimensionless = lookupUnit(DIMENSIONLESS_ID);
-    if (dimensionless === undefined) {
-      return unknownUnit(DIMENSIONLESS_ID);
+  return withUnit(qty, (def) => {
+    if (def.affine === "absolute") {
+      return mismatch(def, def);
     }
-    return ok(si, dimensionless);
-  }
-  const dest = findResultUnit(dim, numeric.sqrt(def.scale));
-  if (dest === undefined) {
-    return unknownUnit(compoundToken(def, undefined, "√"));
-  }
-  return ok(fromSI(si, dest), dest);
+    return derived(
+      numeric.sqrt(toSI(qty.value, def)),
+      scaleDimension(def.dimension, HALF),
+      numeric.sqrt(def.scale),
+      `\u221a${symbolOf(def)}`,
+    );
+  });
 }

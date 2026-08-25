@@ -4,5 +4,7 @@
 export { lex } from "./lex.ts";
 export { normalize } from "./normalize.ts";
 export { parse } from "./parse.ts";
+export { enumerateReadings } from "./rank.ts";
 export { rewrite } from "./rewrite.ts";
-export type { Ast, Token } from "./token.ts";
+export type { AmbiguousToken, Ast, LexToken, Token } from "./token.ts";
+export { trieFor } from "./units/trie.ts";

@@ -21,6 +21,24 @@ test("1 min is number then unit", () => {
   ]);
 });
 
+test("the + inserted between feet and inches is not coloured", () => {
+  assert.deepEqual(subscript.spans("5 ft 11 in"), [
+    { start: 0, end: 1, kind: "number" },
+    { start: 2, end: 4, kind: "unit" },
+    { start: 5, end: 7, kind: "number" },
+    { start: 8, end: 10, kind: "unit" },
+  ]);
+});
+
+test("parentheses and sqrt colour as punctuation and operator", () => {
+  assert.deepEqual(subscript.spans("sqrt(4)"), [
+    { start: 0, end: 4, kind: "operator" },
+    { start: 4, end: 5, kind: "punctuation" },
+    { start: 5, end: 6, kind: "number" },
+    { start: 6, end: 7, kind: "punctuation" },
+  ]);
+});
+
 test("failure yields no spans", () => {
   assert.deepEqual(subscript.spans("hello world"), []);
 });

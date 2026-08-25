@@ -97,7 +97,7 @@ An earlier draft of this research asserted that no good system in this space use
 learning. That is false, and the exception is the most widely deployed system of all.
 
 Meta's **Duckling** — the entity extraction engine behind Wit.ai — uses hand-written rules to
-*generate* candidate parses and a trained classifier to *rank* them. Specifically:
+_generate_ candidate parses and a trained classifier to _rank_ them. Specifically:
 
 - Rules have a name, a pattern, and a production. Patterns do both "character-level matching
   (regexes on input) and concept-level matching (predicates on tokens)." **[verified]** —
@@ -109,19 +109,19 @@ Meta's **Duckling** — the entity extraction engine behind Wit.ai — uses hand
   <https://dpom.github.io/clj-duckling/DeveloperGuide.html>
 - Ranking is a naive Bayes classifier, one per rule, trained with Laplace smoothing on a labeled
   corpus. Features are the concatenation of the rule names of all direct children and the
-  concatenation of the grains of all direct children. Notably the top-level rule name is *not* a
+  concatenation of the grains of all direct children. Notably the top-level rule name is _not_ a
   feature, because what is being scored is the mapping from children to parent. **[verified]** —
   <https://gist.github.com/stroxler/1187695c98e94b0f3ea7dbc1efadf0a8> and the Rust port at
   <https://docs.rs/crate/duckling/latest/source/src/ranking/train.rs>
 - Each rule is framed as "a boolean classifier who has to decide, given a 'route' of tokens
   filling its slots, the probability that it's a good idea for the rule to fire." **[verified]** —
   <https://dpom.github.io/clj-duckling/DeveloperGuide.html>
-- The training corpus is paired with a **negative corpus** of examples that should *not* parse.
+- The training corpus is paired with a **negative corpus** of examples that should _not_ parse.
   The reference time for the corpus is fixed at Tuesday Feb 12, 2013 at 4:30am so that relative
   dates are reproducible. **[verified]** — <https://github.com/facebook/duckling/>
 
-Why this matters for `subscript`: Duckling's architecture is the right answer to a *different
-problem*. Duckling extracts entities from arbitrary prose, where a single sentence yields dozens
+Why this matters for `subscript`: Duckling's architecture is the right answer to a _different
+problem_. Duckling extracts entities from arbitrary prose, where a single sentence yields dozens
 of overlapping candidate parses and something has to choose. A launcher-style calculator gets a
 short string that is either an expression or isn't, and it can demand that the grammar consume
 the whole input. The full-consumption constraint eliminates most ambiguity for free, which is
@@ -256,7 +256,7 @@ directly relevant. **[verified]** — <https://github.com/wanasit/chrono/>
 - The reference model is the part to copy. "Today's 'Friday' is different from last month's
   'Friday'. The meaning of the referenced dates depends on when and where they are mentioned."
   So the reference is a `ParsingReference` carrying both `instant?: Date` and
-  `timezone?: string | number` — an instant *and* a place, never just a clock.
+  `timezone?: string | number` — an instant _and_ a place, never just a clock.
 - Components track certainty: results distinguish known from implied components, which is how
   "3pm" and "3pm on the 14th" can be represented in one type.
 
@@ -363,7 +363,7 @@ requires a ranking function. The tradeoff:
 - Ambiguity-tolerant handles genuinely ambiguous input gracefully and lets you surface
   alternatives to the user, which is the right UX for `oz` and `$` and `IST`.
 
-A workable middle ground: parse deterministically, but let the *lexer* return alternative
+A workable middle ground: parse deterministically, but let the _lexer_ return alternative
 interpretations for known-ambiguous tokens, and evaluate the small cross-product, ranking
 results by a simple scoring function. The number of genuinely ambiguous tokens per query is
 almost always zero or one, so the cross-product stays tiny. **[design]**
@@ -374,15 +374,15 @@ One type serves all four domains. Something like:
 
 ```ts
 type Quantity = {
-  value: Decimal | number
-  dimension: DimensionVector   // exponents over base dimensions
-  scale: Decimal               // factor to base units
-  offset: Decimal              // for affine units; see §7.2
-}
+  value: Decimal | number;
+  dimension: DimensionVector; // exponents over base dimensions
+  scale: Decimal; // factor to base units
+  offset: Decimal; // for affine units; see §7.2
+};
 ```
 
 Convert operands to base units, operate, convert to the target. Dimensional mismatch is the
-error case and should be a *typed* error, not a thrown exception — see §5.3.
+error case and should be a _typed_ error, not a thrown exception — see §5.3.
 
 Currency fits this shape with one modification: its scale factor is loaded at runtime and
 changes daily. Time zones do not fit it at all and need their own machinery (§9).
@@ -397,7 +397,7 @@ caveats in §7.4 and §10.
 
 ## 5. The trigger problem
 
-This is the hardest *product* problem in the domain, and the one where the two best
+This is the hardest _product_ problem in the domain, and the one where the two best
 implementations openly disagree.
 
 ### 5.1 Two coherent philosophies
@@ -447,7 +447,7 @@ On a purpose-built benchmark for intent classification with out-of-scope predict
 96%+ in-scope accuracy while "all methods struggle with identifying out-of-scope queries. Even
 when a large number of out-of-scope examples are provided for training, there is a major
 performance gap, with the best system scoring 66% out-of-scope recall." **[verified]** —
-*An Evaluation Dataset for Intent Classification and Out-of-Scope Prediction*, EMNLP-IJCNLP 2019,
+_An Evaluation Dataset for Intent Classification and Out-of-Scope Prediction_, EMNLP-IJCNLP 2019,
 <https://doi.org/10.18653/v1/d19-1131>
 
 The authors' justification for measuring recall rather than precision transfers exactly to this
@@ -462,7 +462,7 @@ dimension (§2.1); it should be a first-class artifact here too. **[design]**
 Separately, "calculation/conversion" is recognized in the information-retrieval literature as a
 distinct and newly emergent search intent category, defined as questions "aiming to use the
 search engine as a calculator for arithmetic operations or unit conversion." **[verified]** —
-*An Intent Taxonomy for Questions Asked in Web Search*, CHIIR 2021,
+_An Intent Taxonomy for Questions Asked in Web Search_, CHIIR 2021,
 <https://marksanderson.org/files/papers/CHIIR21b.pdf>. Useful mainly as evidence that the query
 class is real and studied.
 
@@ -670,10 +670,10 @@ fraction digits from it, which handles JPY having no minor unit and the three-de
 currencies (BHD, IQD, JOD, KWD, LYD, OMR, TND) correctly for free. **[unverified]** in the
 specifics — the mechanism is well-established, the exact currency list was not re-confirmed here.
 
-Whether a *display-oriented* converter needs decimal arithmetic at all is a genuine open
+Whether a _display-oriented_ converter needs decimal arithmetic at all is a genuine open
 question, not a settled one. Float64 has 15–17 significant decimal digits; a displayed
 conversion rounded to 2–6 significant figures is nowhere near that boundary. The argument for
-decimals is not accuracy but *predictability* — `0.1 + 0.2` visibly misbehaving in a calculator
+decimals is not accuracy but _predictability_ — `0.1 + 0.2` visibly misbehaving in a calculator
 erodes trust even when the displayed result is correct. Note that Soulver uses `Decimal` and
 consequently has to work around Foundation overflow bugs on large divisions **[verified]** —
 <https://github.com/soulverteam/SoulverCore/releases> — while `solve-engine` explicitly chose
@@ -691,13 +691,13 @@ Temporal reached **Stage 4** at TC39's March 2026 meeting, securing its place in
 
 Runtime support as of August 2026:
 
-| Runtime | Status |
-| --- | --- |
-| Firefox | Shipped, 139 (May 2025) **[secondary]** |
-| Chrome | Shipped, 144 (January 2026) **[secondary]** |
-| Edge | Shipped / experimental in 144 **[secondary]** |
-| Safari | **Technology Preview only.** STP 249, released 2026-07-29, "Added support for the `Temporal` object." Not in a stable release. **[verified]** |
-| Node / Deno / Bun | **[unverified]** — Node support was "expected in a future release" as of March 2026 |
+| Runtime           | Status                                                                                                                                        |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Firefox           | Shipped, 139 (May 2025) **[secondary]**                                                                                                       |
+| Chrome            | Shipped, 144 (January 2026) **[secondary]**                                                                                                   |
+| Edge              | Shipped / experimental in 144 **[secondary]**                                                                                                 |
+| Safari            | **Technology Preview only.** STP 249, released 2026-07-29, "Added support for the `Temporal` object." Not in a stable release. **[verified]** |
+| Node / Deno / Bun | **[unverified]** — Node support was "expected in a future release" as of March 2026                                                           |
 
 Sources: <https://webkit.org/blog/18182/release-notes-for-safari-technology-preview-249/>,
 <https://bryntum.com/blog/javascript-temporal-is-it-finally-here/>
@@ -760,7 +760,7 @@ subset beats a complete but ambiguous mapping. **[design]**
 
 The related colloquial problem: users type `PST` in July meaning "Pacific time," when PST is by
 definition the winter offset. Honoring the literal offset is defensible and surprising; mapping
-to the zone is helpful and technically wrong. Soulver's list distinguishes PST from PDT *and*
+to the zone is helpful and technically wrong. Soulver's list distinguishes PST from PDT _and_
 offers "pacific time" as a third, zone-valued option, which is the cleanest resolution — let the
 user express which one they meant. **[design]**
 
@@ -802,7 +802,7 @@ Other cases to have a position on, all **[unverified]** in specifics:
 Two mature projects reached opposite conclusions (§8.5), which is a signal that this is a real
 tradeoff rather than a solved question.
 
-What is not ambiguous is that a calculator must be *legible* about precision. Two documented
+What is not ambiguous is that a calculator must be _legible_ about precision. Two documented
 behaviors worth stealing, both **[verified]** from
 <https://github.com/soulverteam/SoulverCore/releases>:
 
@@ -849,7 +849,7 @@ Two leads worth pursuing:
   **[secondary]** — same source. Its license needs checking but UCAR software is typically
   permissive.
 
-Either way, the underlying *facts* — that a mile is 1609.344 metres — are not copyrightable. What
+Either way, the underlying _facts_ — that a mile is 1609.344 metres — are not copyrightable. What
 is protected is the particular compilation, its selection, and its arrangement. A
 cleanly-sourced table built from NIST SP 811 and CODATA (the same primary sources GNU Units
 cites) is a legitimate path; it is simply real work. **[design]** — and this is a question for a
@@ -975,13 +975,15 @@ Presented as reasoning, not as a plan.
 Everything marked **[unverified]** above, collected. These are research tasks, not facts.
 
 **Licensing — highest priority, blocks data decisions**
-- [ ] Can a permissive library use *any* GNU Units-derived data? Confirm with someone qualified.
+
+- [ ] Can a permissive library use _any_ GNU Units-derived data? Confirm with someone qualified.
 - [ ] Does the pre-1997 FreeBSD `units` fork have a usable license and usable data?
 - [ ] UDUNITS license and data quality.
 - [ ] CLDR, UCUM, QUDT, GeoNames, ISO 4217, and IATA dataset licenses.
 - [ ] Is there any permissively-licensed, actively-maintained unit database at all?
 
 **Units**
+
 - [ ] Exact contents and size of the `Intl.NumberFormat` sanctioned unit list; behavior of
       `Intl.supportedValuesOf("unit")`; compound `unit-per-unit` limits.
 - [ ] Does CLDR `unitPreferenceData` exist and does it solve output-unit selection by
@@ -995,6 +997,7 @@ Everything marked **[unverified]** above, collected. These are research tasks, n
       claims in the earlier draft were vendor self-reported and were not verified.
 
 **Currency**
+
 - [ ] Frankfurter's actual coverage, update time, and terms; whether caching is permitted.
 - [ ] Terms of the free no-key providers `@supercmd/calculator` chains, especially whether
       redistribution or caching is allowed.
@@ -1006,6 +1009,7 @@ Everything marked **[unverified]** above, collected. These are research tasks, n
       vendor-published; either source it properly or drop it.
 
 **Time**
+
 - [ ] Node, Deno, and Bun `Temporal` support as of August 2026.
 - [ ] Measure current `temporal-polyfill` and `@js-temporal/polyfill` bundle sizes. The "50KB
       polyfill tax" claim is stale and should not be repeated until re-measured.
@@ -1017,6 +1021,7 @@ Everything marked **[unverified]** above, collected. These are research tasks, n
 - [ ] Recent DST abolitions and the non-hour-offset zone list.
 
 **Prior art not yet examined**
+
 - [ ] Numbat / Insect, Frink, Rink, Kalker, cpc — architecture and unit data licensing.
 - [ ] libqalculate's parsing modes and "fault-tolerant" input handling.
 - [ ] Microsoft Recognizers-Text: architecture, maintenance status, license.

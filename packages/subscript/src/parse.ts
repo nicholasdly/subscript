@@ -1,19 +1,16 @@
 import { NODE_COUNT_LIMIT, PARSE_DEPTH_LIMIT } from "./limits.ts";
+import type { Ast, BinaryOp, Token } from "./token.ts";
 import type { LimitName } from "./types.ts";
-import type { Ast, OperatorChar, Token } from "./token.ts";
 
-export type ParseOk = { readonly ok: true; readonly ast: Ast };
-export type ParseErr = {
-  readonly ok: false;
-  readonly limit?: LimitName;
-};
-export type ParseResult = ParseOk | ParseErr;
+export type ParseResult =
+  | { readonly ok: true; readonly ast: Ast }
+  | { readonly ok: false; readonly limit?: LimitName };
 
-const notExpr: ParseErr = { ok: false };
+const notAnExpression: ParseResult = { ok: false };
 
-type Bp = { lbp: number; rbp: number };
+type Binding = { readonly lbp: number; readonly rbp: number };
 
-const INFIX: Record<string, Bp> = {
+const BINARY: Record<BinaryOp, Binding> = {
   "+": { lbp: 10, rbp: 10 },
   "-": { lbp: 10, rbp: 10 },
   "*": { lbp: 20, rbp: 20 },
@@ -25,32 +22,40 @@ const PREFIX_BP = 40;
 const POSTFIX_UNIT_BP = 50;
 const IMPLICIT_MUL_BP = 20;
 
+/**
+ * Pratt parser. Every node goes through `node` and every recursion through
+ * `enter`, so a limit stops the parse instead of the stack.
+ */
 class Parser {
-  i = 0;
-  depth = 0;
-  nodes = 0;
-  limit: LimitName | undefined;
-  tokens: readonly Token[];
+  private readonly tokens: readonly Token[];
+  private index = 0;
+  private depth = 0;
+  private nodes = 0;
+  private limit: LimitName | undefined;
 
   constructor(tokens: readonly Token[]) {
     this.tokens = tokens;
   }
 
-  fail(): ParseErr {
-    return this.limit === undefined ? notExpr : { ok: false, limit: this.limit };
+  parse(convertTo: string | undefined): ParseResult {
+    let ast = this.parseExpr(0);
+    if (ast === undefined || this.index < this.tokens.length) {
+      return this.failure();
+    }
+    if (convertTo !== undefined) {
+      ast = this.node({ kind: "convert", expr: ast, toId: convertTo });
+      if (ast === undefined) {
+        return this.failure();
+      }
+    }
+    return { ok: true, ast };
   }
 
-  peek(): Token | undefined {
-    return this.tokens[this.i];
+  private failure(): ParseResult {
+    return this.limit === undefined ? notAnExpression : { ok: false, limit: this.limit };
   }
 
-  advance(): Token | undefined {
-    const token = this.tokens[this.i];
-    this.i += 1;
-    return token;
-  }
-
-  node<T extends Ast>(ast: T): T | undefined {
+  private node<T extends Ast>(ast: T): T | undefined {
     this.nodes += 1;
     if (this.nodes > NODE_COUNT_LIMIT) {
       this.limit = "node-count";
@@ -59,203 +64,147 @@ class Parser {
     return ast;
   }
 
-  enter(): boolean {
-    this.depth += 1;
-    if (this.depth > PARSE_DEPTH_LIMIT) {
+  private enter(): boolean {
+    if (this.depth >= PARSE_DEPTH_LIMIT) {
       this.limit = "parse-depth";
-      this.depth -= 1;
       return false;
     }
+    this.depth += 1;
     return true;
   }
 
-  leave(): void {
+  private leave(): void {
     this.depth -= 1;
   }
 
-  parseExpr(minBp: number): Ast | undefined {
+  private peek(): Token | undefined {
+    return this.tokens[this.index];
+  }
+
+  private advance(): Token | undefined {
+    const token = this.tokens[this.index];
+    this.index += 1;
+    return token;
+  }
+
+  private parseExpr(minBp: number): Ast | undefined {
     let left = this.parsePrefix();
-    if (left === undefined) {
-      return undefined;
-    }
-    for (;;) {
+
+    while (left !== undefined) {
       const token = this.peek();
       if (token === undefined) {
         break;
       }
-      if (token.kind === "unit" && token.unitId !== undefined && POSTFIX_UNIT_BP >= minBp) {
+      if (token.kind === "unit" && POSTFIX_UNIT_BP >= minBp) {
         this.advance();
         left = this.applyUnit(left, token.unitId);
-        if (left === undefined) {
-          return undefined;
-        }
         continue;
       }
-      if (token.kind === "operator" && token.op === "(" && IMPLICIT_MUL_BP >= minBp) {
-        const right = this.parsePrefix();
-        if (right === undefined) {
-          return undefined;
-        }
-        left = this.node({ kind: "binary", op: "*", left, right });
-        if (left === undefined) {
-          return undefined;
-        }
-        continue;
-      }
-      if (token.kind !== "operator" || token.op === undefined) {
+      if (token.kind !== "operator") {
         break;
       }
-      const spec = INFIX[token.op];
-      if (spec === undefined || spec.lbp < minBp) {
+      if (token.op === "(") {
+        // `2(3+4)` is `2 * (3+4)`; the prefix parser consumes the group.
+        if (IMPLICIT_MUL_BP < minBp) {
+          break;
+        }
+        const right = this.parsePrefix();
+        left =
+          right === undefined ? undefined : this.node({ kind: "binary", op: "*", left, right });
+        continue;
+      }
+      if (token.op === ")") {
+        break;
+      }
+      const binding = BINARY[token.op];
+      if (binding.lbp < minBp) {
         break;
       }
       this.advance();
-      const right = this.parseExpr(spec.rbp + 1);
-      if (right === undefined) {
-        return undefined;
-      }
-      left = this.node({
-        kind: "binary",
-        op: token.op as "+" | "-" | "*" | "/" | "^",
-        left,
-        right,
-      });
-      if (left === undefined) {
-        return undefined;
-      }
+      const right = this.parseExpr(binding.rbp + 1);
+      left =
+        right === undefined ? undefined : this.node({ kind: "binary", op: token.op, left, right });
     }
+
     return left;
   }
 
-  applyUnit(left: Ast, unitId: string): Ast | undefined {
+  /** A unit after a bare number makes a quantity; after anything else it multiplies. */
+  private applyUnit(left: Ast, unitId: string): Ast | undefined {
     if (left.kind === "number") {
       return this.node({ kind: "quantity", value: left.value, unitId });
     }
     const one = this.node({ kind: "quantity", value: 1, unitId });
-    if (one === undefined) {
-      return undefined;
-    }
-    return this.node({ kind: "binary", op: "*", left, right: one });
+    return one === undefined ? undefined : this.node({ kind: "binary", op: "*", left, right: one });
   }
 
-  parsePrefix(): Ast | undefined {
+  private parsePrefix(): Ast | undefined {
     const token = this.advance();
     if (token === undefined) {
       return undefined;
     }
-    if (token.kind === "number" && token.value !== undefined) {
+    if (token.kind === "number") {
       return this.node({ kind: "number", value: token.value });
     }
-    if (token.kind === "operator" && token.op === "-") {
+    if (token.kind === "function") {
+      const open = this.advance();
+      return open?.kind === "operator" && open.op === "(" ? this.parseGroup("sqrt") : undefined;
+    }
+    if (token.kind !== "operator") {
+      return undefined;
+    }
+    if (token.op === "(") {
+      return this.parseGroup("group");
+    }
+    if (token.op === "-") {
       if (!this.enter()) {
         return undefined;
       }
       const inner = this.parseExpr(PREFIX_BP);
       this.leave();
-      if (inner === undefined) {
-        return undefined;
-      }
-      return this.node({ kind: "unary", op: "-", inner });
-    }
-    if (token.kind === "operator" && token.op === "(") {
-      if (!this.enter()) {
-        return undefined;
-      }
-      const inner = this.parseExpr(0);
-      this.leave();
-      const close = this.advance();
-      if (inner === undefined || close?.op !== ")") {
-        return undefined;
-      }
-      return inner;
-    }
-    if (token.kind === "function" && token.name === "sqrt") {
-      const open = this.advance();
-      if (open?.op !== "(") {
-        return undefined;
-      }
-      if (!this.enter()) {
-        return undefined;
-      }
-      const inner = this.parseExpr(0);
-      this.leave();
-      const close = this.advance();
-      if (inner === undefined || close?.op !== ")") {
-        return undefined;
-      }
-      return this.node({ kind: "sqrt", inner });
+      return inner === undefined ? undefined : this.node({ kind: "unary", op: "-", inner });
     }
     return undefined;
   }
 
-  eof(): boolean {
-    return this.i >= this.tokens.length;
+  /** Parses up to and including the closing `)`. The opening one is already consumed. */
+  private parseGroup(wrap: "group" | "sqrt"): Ast | undefined {
+    if (!this.enter()) {
+      return undefined;
+    }
+    const inner = this.parseExpr(0);
+    this.leave();
+    const close = this.advance();
+    if (inner === undefined || close?.kind !== "operator" || close.op !== ")") {
+      return undefined;
+    }
+    return wrap === "group" ? inner : this.node({ kind: "sqrt", inner });
   }
 }
 
-function parseAll(tokens: readonly Token[]): ParseResult {
+function parseTokens(tokens: readonly Token[], convertTo: string | undefined): ParseResult {
   if (tokens.some((token) => token.kind === "unknown")) {
-    return notExpr;
+    return notAnExpression;
   }
-  const parser = new Parser(tokens);
-  const ast = parser.parseExpr(0);
-  if (ast === undefined || !parser.eof()) {
-    return parser.fail();
-  }
-  return { ok: true, ast };
+  return new Parser(tokens).parse(convertTo);
 }
 
-function wrapConvert(inner: ParseResult, toId: string): ParseResult {
-  if (!inner.ok) {
-    return inner;
-  }
-  const parser = new Parser([]);
-  parser.nodes = countNodes(inner.ast);
-  const ast = parser.node({ kind: "convert", expr: inner.ast, toId });
-  if (ast === undefined) {
-    return parser.fail();
-  }
-  return { ok: true, ast };
-}
-
-function countNodes(ast: Ast): number {
-  switch (ast.kind) {
-    case "number":
-    case "quantity":
-      return 1;
-    case "unary":
-    case "sqrt":
-      return 1 + countNodes(ast.inner);
-    case "binary":
-      return 1 + countNodes(ast.left) + countNodes(ast.right);
-    case "convert":
-      return 1 + countNodes(ast.expr);
-  }
-}
-
+/**
+ * A trailing `converter unit` or bare trailing `unit` is the conversion target;
+ * everything before it is the expression. Anything left over is a failure.
+ */
 export function parse(tokens: readonly Token[]): ParseResult {
-  if (tokens.length === 0) {
-    return notExpr;
-  }
   const last = tokens[tokens.length - 1];
-  const prev = tokens[tokens.length - 2];
-  if (
-    last?.kind === "unit" &&
-    last.unitId !== undefined &&
-    prev?.kind === "converter"
-  ) {
-    return wrapConvert(parseAll(tokens.slice(0, -2)), last.unitId);
-  }
-  if (last?.kind === "unit" && last.unitId !== undefined && prev?.kind === "unit") {
-    const inner = parseAll(tokens.slice(0, -1));
-    if (inner.ok) {
-      return wrapConvert(inner, last.unitId);
-    }
-    if (inner.limit !== undefined) {
-      return inner;
-    }
-  }
-  return parseAll(tokens);
-}
+  const previous = tokens[tokens.length - 2];
 
-export type { OperatorChar };
+  if (last?.kind === "unit" && previous?.kind === "converter") {
+    return parseTokens(tokens.slice(0, -2), last.unitId);
+  }
+  if (last?.kind === "unit" && previous?.kind === "unit") {
+    const converted = parseTokens(tokens.slice(0, -1), last.unitId);
+    if (converted.ok || converted.limit !== undefined) {
+      return converted;
+    }
+  }
+  return parseTokens(tokens, undefined);
+}

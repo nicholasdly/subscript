@@ -1,57 +1,40 @@
 import type { Token } from "./token.ts";
 
-function isFoot(token: Token): boolean {
-  return token.kind === "unit" && token.unitId === "foot";
+/**
+ * The inserted `+` stands for no source text, so it spans nothing and `spans()`
+ * leaves the whitespace between the two quantities uncoloured.
+ */
+function implicitPlus(after: Token): Token {
+  return { kind: "operator", op: "+", start: after.end, end: after.end, raw: "+" };
 }
 
-function isInch(token: Token): boolean {
-  return token.kind === "unit" && token.unitId === "inch";
-}
-
-function plusBetween(left: Token, right: Token): Token {
-  return {
-    kind: "operator",
-    start: left.end,
-    end: right.start,
-    raw: "+",
-    op: "+",
-  };
-}
-
+/** `5 ft 11 in` means `5 ft + 11 in`. Greedy, left to right, no overlap. */
 export function rewrite(tokens: readonly Token[]): Token[] {
   const out: Token[] = [];
   let i = 0;
+
   while (i < tokens.length) {
-    const a = tokens[i];
-    const b = tokens[i + 1];
-    const c = tokens[i + 2];
-    const d = tokens[i + 3];
+    const feet = tokens[i];
+    const foot = tokens[i + 1];
+    const inches = tokens[i + 2];
+    const inch = tokens[i + 3];
     if (
-      a !== undefined &&
-      b !== undefined &&
-      c !== undefined &&
-      d !== undefined &&
-      a.kind === "number" &&
-      isFoot(b) &&
-      c.kind === "number" &&
-      isInch(d)
+      feet?.kind === "number" &&
+      foot?.kind === "unit" &&
+      foot.unitId === "foot" &&
+      inches?.kind === "number" &&
+      inch?.kind === "unit" &&
+      inch.unitId === "inch"
     ) {
-      out.push(a, b, plusBetween(b, c), c, d);
+      out.push(feet, foot, implicitPlus(foot), inches, inch);
       i += 4;
       continue;
     }
-    if (a !== undefined) {
-      out.push(a);
+    if (feet !== undefined) {
+      out.push(feet);
     }
     i += 1;
   }
-  return out;
-}
 
-export function withoutAlt(token: Token): Token {
-  if (token.alt === undefined) {
-    return token;
-  }
-  const { alt: _alt, ...rest } = token;
-  return rest;
+  return out;
 }

@@ -1,36 +1,36 @@
 import { MAX_READINGS } from "./limits.ts";
-import { withoutAlt } from "./rewrite.ts";
-import type { Ast, Token } from "./token.ts";
+import type { LexToken, Token } from "./token.ts";
 
-export function enumerateReadings(tokens: readonly Token[]): Token[][] | undefined {
+/**
+ * Every combination of readings for the ambiguous tokens in the stream, or
+ * `undefined` when there are too many to be worth trying.
+ */
+export function enumerateReadings(tokens: readonly LexToken[]): Token[][] | undefined {
   let rows: Token[][] = [[]];
+
   for (const token of tokens) {
-    if (token.alt === undefined) {
+    if (token.kind !== "ambiguous") {
       for (const row of rows) {
         row.push(token);
       }
       continue;
     }
-    const next: Token[][] = [];
-    for (const row of rows) {
-      next.push([...row, withoutAlt(token)]);
-      next.push([...row, withoutAlt(token.alt)]);
-    }
-    if (next.length > MAX_READINGS) {
+    if (rows.length * 2 > MAX_READINGS) {
       return undefined;
     }
-    rows = next;
+    const { start, end, raw } = token;
+    const asConverter: Token = { start, end, raw, kind: "converter", converter: token.converter };
+    const asUnit: Token = { start, end, raw, kind: "unit", unitId: token.unitId };
+    rows = rows.flatMap((row) => [
+      [...row, asConverter],
+      [...row, asUnit],
+    ]);
   }
+
   return rows;
 }
 
-export function scoreReading(tokens: readonly Token[], _ast: Ast): number {
-  let score = 1;
-  const usedIn = tokens.some(
-    (token) => token.kind === "converter" && token.converter === "in",
-  );
-  if (usedIn) {
-    score += 10;
-  }
-  return score;
+/** The reading that spends `in` on a conversion wins whenever it evaluates. */
+export function readsInAsConverter(tokens: readonly Token[]): boolean {
+  return tokens.some((token) => token.kind === "converter" && token.converter === "in");
 }

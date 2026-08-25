@@ -14,6 +14,76 @@ When a plan in `docs/plans/` is done, add an entry at the top of the log:
 
 ## Log
 
+### 2026-08-25 — Post-M2 review: three bug fixes and a simplification pass
+
+No plan. A read of `packages/subscript` after M2 landed. `apps/web` untouched.
+
+**Bugs fixed**
+
+- Unary minus produced `dimension-mismatch` on absolute temperatures. `-20 c to f` refused;
+  it is now `-4 °F`. `m2-parser.md` §4.5 spells unary `-` as `mul(quantity(-1), inner)`, but
+  `mul` rejects absolute operands by design, so every negative Celsius or Fahrenheit literal
+  failed. Unary minus now negates the literal and keeps the unit. A side effect: failures
+  downstream of a negated value now report the real operands instead of `1` vs the unit.
+- The `+` that `rewrite` inserts into `5 ft 11 in` spanned the whitespace between the two
+  quantities, so `spans()` coloured it as an operator. Invented tokens now span nothing and
+  `spansFor` drops empty spans.
+- `formatQuantity`'s near-integer nudge used an absolute `1e-12`, so any value within `1e-12`
+  of zero printed as `0` (`0.0000000000001 m` was `0 m`) while large values kept their float
+  noise. The tolerance is relative now: `1e-13 m` prints, and `9270.999999999998 L` is `9271 L`.
+
+**Simplified**
+
+- `Token` is a discriminated union instead of a bag of optionals, replacing the `alt?: Token`
+  sketch in `m2-parser.md` §3. The two readings of `in` are a separate `ambiguous` lex token
+  that `enumerateReadings` splits, so `parse` cannot receive one; `withoutAlt` is gone. This
+  removed every `unitId !== undefined` re-check and the unchecked `token.op as BinaryOp` cast.
+- New `chars.ts` owns `charAt` / `isWhitespace` / `isLetter` / `isMark` / `isAllLetters` /
+  `foldChar` / `skipWhitespace`, which were duplicated across `lex.ts`, `units/trie.ts`, and
+  `units/aliases.ts`. `charAt` returns `""` past the end, which retired the `?? 32` sentinels.
+- `Normalized.map` is now `starts`, with one entry per UTF-16 unit plus a terminator, so
+  `origSpan`'s four fallbacks collapse to one lookup. `normalize` uses one rewrite table.
+- `matchTrie` keeps the best match instead of collecting every hit and scanning backwards, and
+  returns `{ value, length }` rather than four variants carrying an unread `allLetters`.
+- The trie's hand-listed `SKIP_SYMBOLS` / `SKIP_IDS` are derived: skip an empty symbol, a
+  `difference` unit, or a unit with locale-scoped aliases. `buildTrie` is now `trieFor`, which
+  caches the two possible tries.
+- `quantity.ts` lost `resolve` / `isDef`, which discriminated `UnitDef | Result` by probing for
+  a `"scale"` property. Operand resolution goes through `withUnit` / `withUnits`, and the
+  "name the derived result" tail is one `derived` helper. `div`'s dimensionless-numerator branch
+  was equivalent to the general path; the three `lookupUnit("1") === undefined` branches were
+  unreachable and now use an exported `DIMENSIONLESS`.
+- `findResultUnit` moved to `units/lookup.ts` as one allocation-free pass, replacing
+  `unitsMatching(dim).filter(...).find(...)`. `unitsMatching` is gone.
+- `parse` builds the `convert` node inside the parser, so `wrapConvert`, `countNodes`, and the
+  `new Parser([])` used only to borrow a node counter are gone.
+- Ranking is a preference, not a score: `readsInAsConverter` picks the winner directly instead
+  of `+10` / `0` / `-1` magic numbers fed through a sort.
+- Deleted dead code: `aliases.foldKey`, the unread `_ast` parameter on `scoreReading`, and the
+  `void now; void rates;` statements in `createSubscript`.
+
+**Treat as given**
+
+- Unary minus negates the literal. `-20 °C` is a temperature, not `20 × -1`.
+- Tokens the rewriter invents span nothing, and `spans()` never returns an empty span.
+- `Token` is closed over its payloads. Anything the parser must not see (today, an ambiguous
+  reading) belongs in `LexToken`, not as an optional field on `Token`.
+- `numeric.ts` stays. `plan.md` §1.2 and `m1-quantity.md` §1.5 make it a deliberate seam, so
+  the review left it and its test alone even though every function is one operator.
+- `^` stays dimensionless-only per `m2-parser.md` §4.4. `10 ft^2` is still `dimension-mismatch`
+  (`10 m^2` works only because `m^2` is an alias). Worth revisiting when exponents get attention.
+
+**Verified**
+
+- 120 tests (was 107), typecheck, lint, and `oxfmt` green. Added `format.test.ts`, a
+  `negative-celsius` accept fixture, and span, offset, and locale-symbol regression tests.
+- Differential run of the pre-review build against the new source over 17,988 inputs × 2
+  locales, comparing `evaluate` and `spans`: the only differences are the three fixes above.
+
+**Not done**
+
+- `apps/web`, and the deferred M3–M5 items below.
+
 ### 2026-08-25 — M2 Lexer, rewrite, parser
 
 Plan: [`docs/plans/m2-parser.md`](./plans/m2-parser.md)
