@@ -11,7 +11,6 @@
  *   units/                   — the unit catalog
  *
  * Pipeline stages are also exported from `./internals.ts` (not semver-stable).
- * Design intent lives in `docs/plan.md`; settled facts in `docs/history.md`.
  */
 export { createSubscript } from "./create.ts";
 export type { Subscript, SubscriptConfig } from "./create.ts";
