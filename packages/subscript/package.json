@@ -6,10 +6,10 @@
     "arithmetic",
     "conversion",
     "evaluate",
+    "math",
     "natural-language",
     "timezone",
-    "units",
-    "math"
+    "units"
   ],
   "homepage": "https://github.com/nicholasdly/subscript/tree/main/packages/subscript#readme",
   "bugs": {
