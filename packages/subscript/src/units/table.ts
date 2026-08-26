@@ -1,4 +1,5 @@
-import * as numeric from "../numeric.ts";
+/** Hand-authored unit catalog. Each row cites NIST / SI Brochure / CODATA. */
+import * as numeric from "../quantity/numeric.ts";
 import {
   AREA,
   LENGTH,

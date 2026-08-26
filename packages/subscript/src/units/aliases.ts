@@ -1,3 +1,4 @@
+/** Spellings people type (`lbs`, `c`, `meters`) mapped to catalog ids. */
 export type VolumeLocale = "us" | "gb";
 
 export type UnitAlias = {
@@ -6,6 +7,7 @@ export type UnitAlias = {
   readonly locale?: VolumeLocale;
 };
 
+/** `en-GB` is imperial volume; every other locale is US. */
 export function volumeLocale(locale: string): VolumeLocale {
   const parts = locale.toLowerCase().split("-");
   if (parts[0] === "en" && parts[1] === "gb") {
