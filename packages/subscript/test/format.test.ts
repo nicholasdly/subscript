@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { createFormatter, formatQuantity } from "../src/format.ts";
 import type { Quantity, ZonedTime } from "../src/index.ts";
+import { createFormatter, formatQuantity } from "../src/quantity/format.ts";
 
 function q(value: number, id = "metre", symbol = "m"): Quantity {
   return { value, unit: { id, symbol } };

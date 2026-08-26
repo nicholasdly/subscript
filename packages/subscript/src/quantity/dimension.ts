@@ -1,3 +1,8 @@
+/**
+ * SI dimension vectors: seven rational exponents (T L M I Θ N J).
+ *
+ * Used to decide whether two units can convert or combine.
+ */
 export type Rational = { readonly n: number; readonly d: number };
 
 export type Dimension = readonly [

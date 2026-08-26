@@ -1,9 +1,17 @@
+import { isValidOffset, offsetZoneId } from "../time/index.ts";
+import type { AmbiguousClock } from "../types.ts";
 import { charAt, foldChar, isLetter, isMark, skipWhitespace } from "./chars.ts";
 import { sourceIndex, type Normalized } from "./normalize.ts";
 import type { LexToken, Located, OperatorChar } from "./token.ts";
-import type { AmbiguousClock } from "./types.ts";
-import { isValidOffset, offsetZoneId } from "./tz.ts";
-import { matchTrie, type TrieNode } from "./units/trie.ts";
+import { matchTrie, type TrieNode } from "./trie.ts";
+
+/**
+ * Stage 2: string → tokens.
+ *
+ * Numbers, clocks, UTC offsets, operators, then leftmost-longest trie match
+ * for units, converters, zones, and `now`. `in` is flagged ambiguous (converter
+ * or inch); `rank.ts` expands those readings.
+ */
 
 const OPERATORS: readonly OperatorChar[] = ["+", "-", "*", "/", "^", "(", ")"];
 

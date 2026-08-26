@@ -1,3 +1,8 @@
+/**
+ * Stage 4: token-stream rewrites that keep the grammar small.
+ *
+ * `5 ft 11 in` becomes `5 ft + 11 in`. The inserted `+` spans no source text.
+ */
 import type { Token } from "./token.ts";
 
 /**

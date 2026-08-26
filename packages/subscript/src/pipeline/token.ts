@@ -1,3 +1,4 @@
+/** Token and AST shapes. The parser never sees an `ambiguous` token — `rank.ts` splits those first. */
 export type ConverterWord = "to" | "in" | "as" | "\u2192";
 
 export type OperatorChar = "+" | "-" | "*" | "/" | "^" | "(" | ")";

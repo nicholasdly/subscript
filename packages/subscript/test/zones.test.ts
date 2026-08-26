@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { ZONE_ALIASES } from "../src/time/aliases.ts";
+import { ZONES } from "../src/time/table.ts";
 import { UNIT_ALIASES } from "../src/units/aliases.ts";
-import { ZONE_ALIASES } from "../src/zones/aliases.ts";
-import { ZONES } from "../src/zones/table.ts";
 
 const RESERVED = new Set(["to", "in", "as", "sqrt", "now", "\u2192"]);
 

@@ -1,3 +1,4 @@
+/** Public result types: Quantity, ZonedTime, Result, Span, Failure. */
 export type Instant = { readonly epochMilliseconds: number };
 export type NowFn = () => Instant;
 export type AmbiguousClock = "literal24" | "preferDaytime";

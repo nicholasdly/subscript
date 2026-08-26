@@ -8,7 +8,7 @@ import {
   rational,
   rationalsEqual,
   scaleDimension,
-} from "../src/dimension.ts";
+} from "../src/quantity/dimension.ts";
 import { AREA, LENGTH } from "../src/units/kinds.ts";
 
 test("rational reduces by gcd and normalizes sign", () => {

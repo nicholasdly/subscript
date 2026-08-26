@@ -1,3 +1,4 @@
+/** Zone catalog: fixed offsets (`PST`) and IANA zones (`America/Los_Angeles`). */
 export type ZoneKind = "offset" | "iana";
 
 export type ZoneSource = {

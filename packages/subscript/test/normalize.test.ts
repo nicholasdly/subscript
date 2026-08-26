@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { normalize, sourceIndex } from "../src/normalize.ts";
+import { normalize, sourceIndex } from "../src/pipeline/normalize.ts";
 
 test("maps minus, times, divide, and long arrow", () => {
   const result = normalize("1 \u2212 2 \u00d7 3 \u00f7 4 \u27f6 5");

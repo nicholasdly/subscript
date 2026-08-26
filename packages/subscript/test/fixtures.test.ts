@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { createSubscript, isZonedTime, type Result } from "../src/index.ts";
-import { toWall } from "../src/tz.ts";
+import { toWall } from "../src/time/index.ts";
 import { accept } from "./fixtures/accept.ts";
 import { reject } from "./fixtures/reject.ts";
 import { REFERENCE_INSTANT, type Fixture } from "./fixtures/types.ts";

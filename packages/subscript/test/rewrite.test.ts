@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { lex } from "../src/lex.ts";
-import { normalize } from "../src/normalize.ts";
-import { enumerateReadings } from "../src/rank.ts";
-import { rewrite } from "../src/rewrite.ts";
-import type { Token } from "../src/token.ts";
-import { trieFor } from "../src/units/trie.ts";
+import { lex } from "../src/pipeline/lex.ts";
+import { normalize } from "../src/pipeline/normalize.ts";
+import { enumerateReadings } from "../src/pipeline/rank.ts";
+import { rewrite } from "../src/pipeline/rewrite.ts";
+import type { Token } from "../src/pipeline/token.ts";
+import { trieFor } from "../src/pipeline/trie.ts";
 
 const trie = trieFor("en-US");
 

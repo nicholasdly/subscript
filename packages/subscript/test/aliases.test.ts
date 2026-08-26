@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { matchTrie, trieFor, type TrieValue } from "../src/pipeline/trie.ts";
 import { aliasesFor, UNIT_ALIASES, volumeLocale, type VolumeLocale } from "../src/units/aliases.ts";
 import { lookupUnit } from "../src/units/lookup.ts";
-import { matchTrie, trieFor, type TrieValue } from "../src/units/trie.ts";
 
 function match(locale: string, text: string): TrieValue | undefined {
   return matchTrie(trieFor(locale), text, 0)?.value;

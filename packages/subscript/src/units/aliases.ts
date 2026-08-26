@@ -1,3 +1,4 @@
+/** Spellings people type (`lbs`, `c`, `meters`) mapped to catalog ids. */
 export type VolumeLocale = "us" | "gb";
 
 export type UnitAlias = {

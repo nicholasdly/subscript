@@ -1,3 +1,7 @@
+import type { Quantity, Result } from "../types.ts";
+import type { UnitDef } from "../units/kinds.ts";
+import { findResultUnit, lookupUnit, toPublic } from "../units/lookup.ts";
+import { DIMENSIONLESS } from "../units/table.ts";
 import {
   dimensionsEqual,
   divDimensions,
@@ -9,10 +13,13 @@ import {
 } from "./dimension.ts";
 import { formatQuantity } from "./format.ts";
 import * as numeric from "./numeric.ts";
-import type { Quantity, Result } from "./types.ts";
-import type { UnitDef } from "./units/kinds.ts";
-import { findResultUnit, lookupUnit, toPublic } from "./units/lookup.ts";
-import { DIMENSIONLESS } from "./units/table.ts";
+
+/**
+ * Dimensional arithmetic: add, convert, mul, and friends.
+ *
+ * No parsing. A Quantity is a number plus a unit; operations go through SI
+ * and refuse dimension mismatches rather than guessing.
+ */
 
 const HALF = rational(1, 2);
 

@@ -1,5 +1,11 @@
-import type { ZonedTime } from "./types.ts";
-import { catalogZone, type ZoneDef } from "./zones/table.ts";
+/**
+ * Time zone conversion on `Intl.DateTimeFormat` — no bundled tz database.
+ *
+ * Offset abbreviations (`PST`) are fixed year-round; named zones (`pacific
+ * time`) follow DST via the runtime's tzdata.
+ */
+import type { ZonedTime } from "../types.ts";
+import { catalogZone, type ZoneDef } from "./table.ts";
 
 export type Wall = {
   readonly year: number;

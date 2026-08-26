@@ -1,3 +1,4 @@
+/** How people type time zones: `tokyo`, `PST`, `pacific time`. */
 export type ZoneAlias = {
   readonly alias: string;
   readonly id: string;

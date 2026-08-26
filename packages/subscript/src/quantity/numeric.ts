@@ -1,3 +1,7 @@
+/**
+ * float64 ops in one place so a later numeric backend is a contained change.
+ * Checked variants refuse precision-loss instead of returning a lie.
+ */
 export const RELATIVE_EPS = 1e-12;
 
 export type NumericOutcome = { ok: true; value: number } | { ok: false };

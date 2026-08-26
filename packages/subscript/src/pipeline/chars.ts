@@ -1,3 +1,4 @@
+/** Unicode helpers for the lexer: code points, case-folding, word boundaries. */
 const WHITESPACE = /\s/u;
 const LETTER = /\p{L}/u;
 const MARK = /\p{M}/u;

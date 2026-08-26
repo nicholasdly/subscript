@@ -9,7 +9,7 @@ import {
   toWall,
   toZonedTime,
   wallsEqual,
-} from "../src/tz.ts";
+} from "../src/time/index.ts";
 
 const engine = createTzEngine();
 

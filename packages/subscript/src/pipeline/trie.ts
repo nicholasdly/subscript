@@ -1,17 +1,18 @@
-import {
-  charAt,
-  foldChar,
-  isAllLetters,
-  isLetter,
-  isWhitespace,
-  skipWhitespace,
-} from "../chars.ts";
 import { MAX_ALIAS_LENGTH } from "../limits.ts";
-import type { ConverterWord } from "../token.ts";
-import { ZONE_ALIASES } from "../zones/aliases.ts";
-import { aliasesFor, UNIT_ALIASES, volumeLocale, type VolumeLocale } from "./aliases.ts";
-import type { UnitDef } from "./kinds.ts";
-import { UNITS } from "./table.ts";
+import { ZONE_ALIASES } from "../time/aliases.ts";
+import { aliasesFor, UNIT_ALIASES, volumeLocale, type VolumeLocale } from "../units/aliases.ts";
+import type { UnitDef } from "../units/kinds.ts";
+import { UNITS } from "../units/table.ts";
+import { charAt, foldChar, isAllLetters, isLetter, isWhitespace, skipWhitespace } from "./chars.ts";
+import type { ConverterWord } from "./token.ts";
+
+/**
+ * The alias trie the lexer matches against.
+ *
+ * Built once from unit aliases, unit symbols, converters, `now`, and zone
+ * aliases. Leftmost-longest match; letter keys need a word boundary so
+ * `minimum` is not `min`.
+ */
 
 export type TrieValue =
   | { kind: "unit"; unitId: string }

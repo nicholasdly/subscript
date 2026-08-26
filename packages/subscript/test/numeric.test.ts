@@ -10,7 +10,7 @@ import {
   sqrt,
   sub,
   subChecked,
-} from "../src/numeric.ts";
+} from "../src/quantity/numeric.ts";
 
 test("add, sub, mul, div wrap float64 arithmetic", () => {
   assert.equal(add(2, 3), 5);

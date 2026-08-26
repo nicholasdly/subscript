@@ -1,4 +1,5 @@
-import { dimension, rational, type Dimension } from "../dimension.ts";
+/** UnitDef shape, affine kinds, and the seven SI dimension constants. */
+import { dimension, rational, type Dimension } from "../quantity/dimension.ts";
 
 export type AffineKind = "linear" | "absolute" | "difference";
 

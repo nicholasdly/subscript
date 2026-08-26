@@ -1,6 +1,13 @@
+import { createTzEngine, toWall, type TzEngine } from "../time/index.ts";
+import { isZonedTime, type EvalValue, type Quantity, type ZonedTime } from "../types.ts";
 import { RELATIVE_EPS } from "./numeric.ts";
-import { isZonedTime, type EvalValue, type Quantity, type ZonedTime } from "./types.ts";
-import { createTzEngine, toWall, type TzEngine } from "./tz.ts";
+
+/**
+ * Display strings for Quantity and ZonedTime.
+ *
+ * Rounding is format-time only (six significant figures). Compact notation
+ * (`300k`) is output-only — typing `2.5k` is still 2.5 kelvin.
+ */
 
 export type FormatConfig = {
   compact?: boolean;

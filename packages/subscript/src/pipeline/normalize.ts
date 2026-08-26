@@ -1,3 +1,9 @@
+/**
+ * Stage 1: Unicode cleanup so the lexer sees a boring string.
+ *
+ * NFC, `×` → `*`, `a.m.` → `am`, `℃` → `°C`. Offsets into the original input
+ * are kept so `spans()` can highlight what the user typed.
+ */
 export type Normalized = {
   readonly text: string;
   /**

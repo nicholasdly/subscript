@@ -1,6 +1,12 @@
-import { NODE_COUNT_LIMIT, PARSE_DEPTH_LIMIT } from "./limits.ts";
+/**
+ * Stage 5: tokens → AST.
+ *
+ * Time queries are a few exact shapes (`3pm PST in Tokyo`). Everything else is
+ * a Pratt parser; leftover tokens mean the input is not an expression.
+ */
+import { NODE_COUNT_LIMIT, PARSE_DEPTH_LIMIT } from "../limits.ts";
+import type { LimitName } from "../types.ts";
 import type { Ast, BinaryOp, Token } from "./token.ts";
-import type { LimitName } from "./types.ts";
 
 export type ParseResult =
   | { readonly ok: true; readonly ast: Ast }

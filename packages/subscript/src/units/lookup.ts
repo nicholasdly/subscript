@@ -1,5 +1,6 @@
-import { dimensionsEqual, type Dimension } from "../dimension.ts";
-import * as numeric from "../numeric.ts";
+/** Find a unit by id, or name a derived result (`m×m` → `m²`). */
+import { dimensionsEqual, type Dimension } from "../quantity/dimension.ts";
+import * as numeric from "../quantity/numeric.ts";
 import type { Unit } from "../types.ts";
 import type { UnitDef } from "./kinds.ts";
 import { UNITS } from "./table.ts";

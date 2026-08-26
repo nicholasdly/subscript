@@ -1,8 +1,12 @@
-import { createFormatter } from "./format.ts";
-import { runPipeline, spansForInput } from "./pipeline.ts";
+/**
+ * Configured engine. Builds the alias trie, timezone helpers, and formatters
+ * once; each `evaluate` call runs `pipeline/`.
+ */
+import { runPipeline, spansForInput } from "./pipeline/index.ts";
+import { trieFor } from "./pipeline/trie.ts";
+import { createFormatter } from "./quantity/format.ts";
+import { createTzEngine } from "./time/index.ts";
 import type { AmbiguousClock, NowFn, Result, Span } from "./types.ts";
-import { createTzEngine } from "./tz.ts";
-import { trieFor } from "./units/trie.ts";
 
 export type SubscriptConfig = {
   locale?: string;

@@ -1,3 +1,4 @@
+/** Default `evaluate(input)`. A thin wrapper over a lazily created instance. */
 import { createSubscript, type Subscript } from "./create.ts";
 import type { Result } from "./types.ts";
 

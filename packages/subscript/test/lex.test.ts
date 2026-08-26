@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { lex } from "../src/lex.ts";
-import { normalize } from "../src/normalize.ts";
-import { trieFor } from "../src/units/trie.ts";
+import { lex } from "../src/pipeline/lex.ts";
+import { normalize } from "../src/pipeline/normalize.ts";
+import { trieFor } from "../src/pipeline/trie.ts";
 
 const trie = trieFor("en-US");
 

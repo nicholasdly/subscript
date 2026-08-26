@@ -1,4 +1,10 @@
-import { MAX_READINGS } from "./limits.ts";
+/**
+ * Stage 3: expand ambiguous tokens into candidate readings.
+ *
+ * Today that is only `in` (converter vs inch). The conductor parses each
+ * reading and picks a winner.
+ */
+import { MAX_READINGS } from "../limits.ts";
 import type { LexToken, Token } from "./token.ts";
 
 /**

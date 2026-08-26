@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { dimensionsEqual } from "../src/dimension.ts";
+import { dimensionsEqual } from "../src/quantity/dimension.ts";
 import {
   AREA,
   LENGTH,
