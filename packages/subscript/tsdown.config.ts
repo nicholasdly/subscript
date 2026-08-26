@@ -1,9 +1,10 @@
-import { defineConfig } from "tsup";
+import { defineConfig } from "tsdown";
 
 export default defineConfig({
   entry: ["src/index.ts", "src/internals.ts"],
   format: ["cjs", "esm"],
   dts: true,
   clean: true,
-  splitting: false,
+  target: false,
+  fixedExtension: false,
 });
