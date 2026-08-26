@@ -1,3 +1,8 @@
+<p>
+  <img src="https://badgen.net/npm/v/@nicholasdly/subscript" />
+  <img src="https://badgen.net/npm/license/@nicholasdly/subscript" />
+</p>
+
 # subscript
 
 Monorepo for [`@nicholasdly/subscript`](https://www.npmjs.com/package/@nicholasdly/subscript): evaluate arithmetic, unit conversions, and time zones from natural language.
