@@ -10,6 +10,7 @@
     "dev": "turbo run dev",
     "lint": "oxlint .",
     "format": "oxfmt .",
+    "format:check": "oxfmt . --check",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "changeset": "turbo run typecheck lint format build test && changeset",
