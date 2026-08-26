@@ -1,102 +1,152 @@
-# subscript
+# @nicholasdly/subscript
 
-Natural-language evaluation of arithmetic, unit conversion, and time zones.
+Evaluate arithmetic, unit conversions, and time zones from natural language.
 
 ```ts
-import { createSubscript, evaluate, isZonedTime } from "@repo/subscript";
+import { evaluate } from "@nicholasdly/subscript";
 
-const result = evaluate("20 c to f");
-// { ok: true, value: { value: 68, unit: { id: "fahrenheit", symbol: "°F" } }, text: "68 °F" }
+evaluate("20 c to f");
+// {
+//   ok: true,
+//   text: "68 °F",
+//   value: { value: 68, unit: { id: "fahrenheit", symbol: "°F" } },
+// }
+```
+
+Synchronous, no network, no runtime dependencies. Currency conversion is unfortunately out of scope since it would require dynamic data.
+
+## Install
+
+```bash
+npm install @nicholasdly/subscript
+```
+
+## Usage
+
+```ts
+import { createSubscript, evaluate, isZonedTime } from "@nicholasdly/subscript";
 
 evaluate("1 m in ft");
-// text: "3.28084 ft" — six significant figures, display-only rounding
+// { ok: true, text: "3.28084 ft", ... }
 
-const time = createSubscript({
+evaluate("(2 + 3) * 4 km in miles");
+// { ok: true, text: "12.4274 mi", ... }
+
+evaluate("100 usd in eur");
+// { ok: false, reason: { kind: "not-an-expression" } }
+
+const subscript = createSubscript({
   now: () => ({ epochMilliseconds: Date.UTC(2026, 0, 15, 18, 0, 0) }),
-}).evaluate("3pm PST in Tokyo");
-// text: "8:00 AM JST, Jan 16"
+});
+
+const time = subscript.evaluate("3pm PST in Tokyo");
+// time.text === "8:00 AM JST, Jan 16"
 // isZonedTime(time.value) === true
 ```
 
-`evaluate` is synchronous. No network. No configuration required. Currency is not
-supported: `100 usd in eur` is not an expression.
+`evaluate` is the default instance: `en-US`, compact output, `Date.now`. Use `createSubscript` for a custom clock, locale, or `spans`.
 
-Dimensionless results of a thousand or more compact by default
-(`100000 + 200000` → `300k`). Those strings are for display: typing `2.5k` is
-still 2.5 kelvin. Turn it off with `createSubscript({ compact: false })`.
+## API
 
-## Quantity arithmetic
+### `evaluate(input)`
 
-`quantity`, `convert`, `add`, `sub`, `mul`, `div`, and `sqrt` operate on
-`Quantity` values with no parsing. Catalog ids are SI spellings (`metre`,
-`celsius`), not aliases (`m`, `c`).
+Evaluate a query. Returns a [`Result`](#results).
+
+### `createSubscript(config?)`
+
+Configured evaluator. Same contract as `evaluate`, plus `spans`.
+
+| Option           | Default       | Notes                                                                   |
+| ---------------- | ------------- | ----------------------------------------------------------------------- |
+| `locale`         | `"en-US"`     | `en-GB` treats `gallon` as imperial; every other locale treats it as US |
+| `compact`        | `true`        | Compact `k` / `M` / `G` on dimensionless `text` of 1000 or more         |
+| `now`            | `Date.now`    | Injected clock for `now in Tokyo` and dating `3pm PST`                  |
+| `ambiguousClock` | `"literal24"` | `3:00` is 03:00. `"preferDaytime"` treats 1:00–6:59 without am/pm as PM |
+
+Compact suffixes are display-only. `2.5k` as input is 2.5 kelvin.
 
 ```ts
-import { convert, quantity } from "@repo/subscript";
-
-quantity(10, "metre");
-// { ok: true, value: { value: 10, unit: { id: "metre", symbol: "m" } }, text: "10 m" }
-
-const metres = quantity(10, "metre");
-if (metres.ok) {
-  convert(metres.value, "foot");
-  // text: "32.8084 ft"
-}
+createSubscript({ compact: false }).evaluate("100000 + 200000");
+// { ok: true, text: "300000", ... }
 ```
 
-A derived result is named only when the catalog has that unit: `10 m × 10 m` is
-`100 m²`; `3 kg × 3 L` is `unknown-unit`. Two absolute temperatures cannot add;
-`20 °C + 5 Δ°C` can.
+### `spans(input)`
+
+Highlight ranges for the original string. Does not evaluate.
+
+```ts
+createSubscript().spans("20 c to f");
+// [
+//   { start: 0, end: 2, kind: "number" },
+//   { start: 3, end: 4, kind: "unit" },
+//   { start: 5, end: 7, kind: "converter" },
+//   { start: 8, end: 9, kind: "unit" },
+// ]
+```
+
+`kind` is `"number"` | `"unit"` | `"timezone"` | `"operator"` | `"converter"` | `"punctuation"` | `"unknown"`.
 
 ## Results
 
-`evaluate` and the quantity functions return a `Result`. Nothing in the public
-API throws for input-shaped reasons. Check `ok` before reading `value`.
+Public functions return a `Result`. Check `ok` before reading `value`. Input errors do not throw.
 
-| `reason.kind`        | When                                               |
-| -------------------- | -------------------------------------------------- |
-| `not-an-expression`  | the string is not a query this package accepts     |
-| `dimension-mismatch` | the operands cannot combine or convert             |
-| `unknown-unit`       | a catalog id or derived name cannot be resolved    |
-| `precision-loss`     | float64 would drop an addend or overflow           |
-| `limit-exceeded`     | input length, parse depth, or node count cap fired |
+```ts
+type Result =
+  | {
+      ok: true;
+      value: Quantity | ZonedTime;
+      text: string;
+      alternates?: Alternate[];
+    }
+  | { ok: false; reason: Failure };
+```
 
-`createSubscript({ locale, compact, now, ambiguousClock })` reuses the alias
-trie and formatters across calls. `en-GB` treats `gallon` as imperial; every
-other locale treats it as US. `spans(input)` returns highlight ranges without
-evaluating.
+`text` is the display string, rounded to six significant figures. Time results are `ZonedTime`; narrow with `isZonedTime(result.value)`.
 
-Pipeline stages live at `@repo/subscript/internals` and are not covered by
-semver.
+| `reason.kind`        | When                                                                             |
+| -------------------- | -------------------------------------------------------------------------------- |
+| `not-an-expression`  | the string is not a query this package accepts                                   |
+| `dimension-mismatch` | the operands cannot combine or convert                                           |
+| `unknown-unit`       | a catalog id or derived name cannot be resolved                                  |
+| `ambiguous`          | more than one unit matches and no reading can be chosen                          |
+| `precision-loss`     | float64 would drop an addend or overflow                                         |
+| `limit-exceeded`     | input longer than 256 characters, parse depth over 32, or more than 64 AST nodes |
+
+`alternates` is set when another reading of the same input also succeeds, such as `in` as converter versus inch.
+
+## Quantity
+
+`quantity`, `convert`, `add`, `sub`, `mul`, `div`, and `sqrt` operate on `Quantity` values. They do not parse strings. Catalog ids are SI spellings (`metre`, `celsius`), not aliases (`m`, `c`).
+
+```ts
+import { convert, isZonedTime, quantity } from "@nicholasdly/subscript";
+
+const metres = quantity(10, "metre");
+// { ok: true, text: "10 m", value: { value: 10, unit: { id: "metre", symbol: "m" } } }
+
+if (metres.ok && !isZonedTime(metres.value)) {
+  convert(metres.value, "foot");
+  // { ok: true, text: "32.8084 ft", ... }
+}
+```
+
+A product is named only when the catalog has that unit: `m × m` is `m²`; `kg × L` is `unknown-unit`. Two absolute temperatures cannot add; `20 °C + 5 Δ°C` can.
 
 ## Time zones
 
-A successful time query is not a `Quantity`. Check `isZonedTime(result.value)`.
-Conversion uses the runtime's `Intl` tzdata; this package does not ship a tz
-database and does not use Temporal.
-
-Three shapes:
+Time results are `ZonedTime`, not `Quantity`. Zones resolve through the runtime `Intl` database; this package does not ship tzdata.
 
 | Input              | Meaning                                 |
 | ------------------ | --------------------------------------- |
-| `3pm PST`          | clock on today's date in that zone      |
+| `3pm PST`          | that clock on today's date in that zone |
 | `3pm PST in Tokyo` | convert that instant to the target      |
 | `now in Tokyo`     | injected `now`, displayed in the target |
 
-A clock without a source zone (`3pm`, `3pm in Tokyo`) is not an expression.
-Bare `now` is not an expression either. Tests inject `now`; the default instance
-reads `Date.now`.
+A clock needs a source zone. `3pm` and `3pm in Tokyo` fail. Bare `now` fails.
 
-`3:00` is 03:00 (`literal24`). `createSubscript({ ambiguousClock: "preferDaytime" })`
-treats 1:00–6:59 without am/pm as PM.
+`PST` / `PDT` / `EST` / … are fixed offsets year-round. `pacific time` / `PT` is `America/Los_Angeles` and follows DST. In July, `3pm PST in Tokyo` is 8:00 JST; `3pm pacific time in Tokyo` is 7:00 JST.
 
-`PST` / `PDT` / `EST` / … are **fixed offsets** year-round. `pacific time` /
-`PT` is `America/Los_Angeles` and follows DST. In July, `3pm PST in Tokyo` is
-still 8:00 JST; `3pm pacific time in Tokyo` is 7:00 JST.
-
-`IST` is India. Ireland is `dublin`. Israel is `jerusalem`. `CST` the
-abbreviation is US Central Standard. China is `china` / `beijing`. Country names
-use the capital's zone (`usa` → Eastern).
+`IST` is India. Ireland is `dublin`. Israel is `jerusalem`. Bare `CST` is US Central Standard. China is `china` / `beijing`. Country names use the capital's zone (`usa` → Eastern).
 
 UTC offsets: `UTC`, `GMT`, `Z`, `GMT+8`, `UTC-5:30`.
 
@@ -152,11 +202,10 @@ UTC offsets: `UTC`, `GMT`, `Z`, `GMT+8`, `UTC-5:30`.
 | cairo, egypt                                                  | Africa/Cairo        | EET   |
 | johannesburg, south africa                                    | Africa/Johannesburg | SAST  |
 
-## Package layout
+## Internals
 
-`src/index.ts` is the public API. `src/pipeline/` turns a string into a
-`Result`. `src/quantity/` is dimensional arithmetic with no parsing.
-`src/units/` is the catalog. `src/time/` is clocks and zones.
+Pipeline stages are exported from `@nicholasdly/subscript/internals` and are not covered by semver.
 
-Design intent is in the repository `docs/plan.md`. Settled facts are in
-`docs/history.md`.
+## License
+
+MIT
