@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import { test } from "node:test";
+import { describe, expect, test } from "vitest";
 
 import { createSubscript, type Result } from "../src/index.ts";
 
@@ -15,40 +14,37 @@ function lcg(state: number): () => number {
   };
 }
 
-const FAILURE_KINDS = new Set([
+const FAILURE_KINDS = [
   "not-an-expression",
   "dimension-mismatch",
   "unknown-unit",
   "ambiguous",
   "precision-loss",
   "limit-exceeded",
-]);
+] as const;
 
-function assertWellFormed(result: Result): void {
-  assert.equal(typeof result, "object");
-  assert.notEqual(result, null);
-  assert.equal(typeof result.ok, "boolean");
+function expectWellFormed(result: Result): void {
+  expect(result).toEqual(expect.objectContaining({ ok: expect.any(Boolean) }));
   if (result.ok) {
-    assert.equal(typeof result.text, "string");
-    assert.equal(typeof result.value, "object");
-  } else {
-    assert.equal(typeof result.reason, "object");
-    assert.ok(FAILURE_KINDS.has(result.reason.kind), result.reason.kind);
+    expect(result.text).toEqual(expect.any(String));
+    expect(result.value).toEqual(expect.any(Object));
+    return;
   }
+  expect(result.reason).toEqual(expect.any(Object));
+  expect(FAILURE_KINDS).toContain(result.reason.kind);
 }
 
-test("seeded random strings never throw and always return a Result", () => {
-  const subscript = createSubscript();
-  const started = Date.now();
-  const next = lcg(SEED);
-  for (let n = 0; n < 1000; n++) {
-    const length = next() % 65;
-    let input = "";
-    for (let i = 0; i < length; i++) {
-      input += ALPHABET.charAt(next() % ALPHABET.length);
+describe("fuzz", () => {
+  test("seeded random strings never throw and always return a Result", { timeout: 5000 }, () => {
+    const subscript = createSubscript();
+    const next = lcg(SEED);
+    for (let n = 0; n < 1000; n++) {
+      const length = next() % 65;
+      let input = "";
+      for (let i = 0; i < length; i++) {
+        input += ALPHABET.charAt(next() % ALPHABET.length);
+      }
+      expectWellFormed(subscript.evaluate(input));
     }
-    const result = subscript.evaluate(input);
-    assertWellFormed(result);
-  }
-  assert.ok(Date.now() - started < 5000, "fuzz exceeded 5s");
+  });
 });

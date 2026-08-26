@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import { test } from "node:test";
+import { describe, expect, test } from "vitest";
 
 import { createSubscript, isZonedTime, type Result } from "../src/index.ts";
 import { toWall } from "../src/time/index.ts";
@@ -7,87 +6,85 @@ import { accept } from "./fixtures/accept.ts";
 import { reject } from "./fixtures/reject.ts";
 import { REFERENCE_INSTANT, type Fixture } from "./fixtures/types.ts";
 
-const FAILURE_KINDS = new Set([
+const FAILURE_KINDS = [
   "not-an-expression",
   "dimension-mismatch",
   "unknown-unit",
   "ambiguous",
   "precision-loss",
   "limit-exceeded",
-]);
+] as const;
 
 const fixtures: Fixture[] = [...accept, ...reject];
 
-const names = new Set<string>();
-for (const fixture of fixtures) {
-  if (names.has(fixture.name)) {
-    throw new Error(`Duplicate fixture name: ${fixture.name}`);
-  }
-  names.add(fixture.name);
-}
-
-function assertWellFormed(result: Result): void {
-  assert.equal(typeof result, "object");
-  assert.notEqual(result, null);
-  assert.equal(typeof result.ok, "boolean");
+function expectWellFormed(result: Result): void {
+  expect(result).toEqual(expect.objectContaining({ ok: expect.any(Boolean) }));
   if (result.ok) {
-    assert.equal(typeof result.text, "string");
-    assert.equal(typeof result.value, "object");
-  } else {
-    assert.equal(typeof result.reason, "object");
-    assert.ok(FAILURE_KINDS.has(result.reason.kind), result.reason.kind);
-  }
-}
-
-function assertExpect(result: Result, expect: Fixture["expect"]): void {
-  if (expect.ok) {
-    assert.equal(result.ok, true);
-    if (!result.ok) {
-      return;
-    }
-    assert.equal(result.text, expect.text);
-    if ("zoned" in expect) {
-      assert.equal(isZonedTime(result.value), true);
-      if (isZonedTime(result.value)) {
-        assert.equal(result.value.timeZone, expect.zoned.timeZone);
-        assert.equal(result.value.label, expect.zoned.label);
-        const wall = toWall(result.value);
-        assert.ok(wall);
-        assert.equal(wall.hour, expect.zoned.hour);
-        assert.equal(wall.minute, expect.zoned.minute);
-      }
-      return;
-    }
-    assert.equal(isZonedTime(result.value), false);
-    if (!isZonedTime(result.value)) {
-      assert.equal(result.value.unit.id, expect.unitId);
-      const eps = expect.eps ?? 0;
-      if (eps === 0) {
-        assert.equal(result.value.value, expect.value);
-      } else {
-        assert.ok(Math.abs(result.value.value - expect.value) <= eps);
-      }
-    }
+    expect(result.text).toEqual(expect.any(String));
+    expect(result.value).toEqual(expect.any(Object));
     return;
   }
-  assert.equal(result.ok, false);
-  if (!result.ok) {
-    assert.equal(result.reason.kind, expect.reason);
-  }
+  expect(result.reason).toEqual(expect.any(Object));
+  expect(FAILURE_KINDS).toContain(result.reason.kind);
 }
 
-for (const fixture of fixtures) {
-  test(fixture.name, (t) => {
-    const subscript = createSubscript({
-      locale: fixture.locale ?? "en-US",
-      now: () => fixture.now ?? REFERENCE_INSTANT,
-    });
-    const result = subscript.evaluate(fixture.input);
-    assertWellFormed(result);
-    if (fixture.todo) {
-      t.todo();
+function expectFixture(result: Result, expected: Fixture["expect"]): void {
+  if (!expected.ok) {
+    expect.soft(result).toFailWith(expected.reason);
+    return;
+  }
+  expect.soft(result.ok).toBe(true);
+  if (!result.ok) {
+    return;
+  }
+  expect.soft(result.text).toBe(expected.text);
+  if ("zoned" in expected) {
+    expect.soft(isZonedTime(result.value)).toBe(true);
+    if (!isZonedTime(result.value)) {
       return;
     }
-    assertExpect(result, fixture.expect);
-  });
+    expect.soft(result.value).toMatchObject({
+      timeZone: expected.zoned.timeZone,
+      label: expected.zoned.label,
+    });
+    expect.soft(toWall(result.value)).toMatchObject({
+      hour: expected.zoned.hour,
+      minute: expected.zoned.minute,
+    });
+    return;
+  }
+  expect.soft(result).toBeQuantity(expected.unitId, expected.value, expected.eps);
 }
+
+function runFixture(fixture: Fixture): void {
+  const subscript = createSubscript({
+    locale: fixture.locale ?? "en-US",
+    now: () => fixture.now ?? REFERENCE_INSTANT,
+  });
+  const result = subscript.evaluate(fixture.input);
+  expectWellFormed(result);
+  expectFixture(result, fixture.expect);
+}
+
+describe("fixtures", () => {
+  test("names are unique", () => {
+    const names = fixtures.map((fixture) => fixture.name);
+    expect(names).toEqual([...new Set(names)]);
+  });
+
+  describe("accept", () => {
+    const pending = accept.filter((fixture) => fixture.todo);
+    test.each(accept.filter((fixture) => !fixture.todo))("$name", runFixture);
+    if (pending.length > 0) {
+      test.todo.each(pending)("$name", runFixture);
+    }
+  });
+
+  describe("reject", () => {
+    const pending = reject.filter((fixture) => fixture.todo);
+    test.each(reject.filter((fixture) => !fixture.todo))("$name", runFixture);
+    if (pending.length > 0) {
+      test.todo.each(pending)("$name", runFixture);
+    }
+  });
+});
