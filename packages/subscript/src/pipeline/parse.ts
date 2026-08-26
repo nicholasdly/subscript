@@ -17,6 +17,10 @@ function failedParse(): ParseResult {
   return { ok: false };
 }
 
+function okParse(ast: Ast): ParseResult {
+  return { ok: true, ast };
+}
+
 type Binding = { readonly lbp: number; readonly rbp: number };
 
 const BINARY: Record<BinaryOp, Binding> = {
@@ -57,7 +61,7 @@ class Parser {
         return this.failure();
       }
     }
-    return { ok: true, ast };
+    return okParse(ast);
   }
 
   private failure(): ParseResult {
@@ -206,66 +210,92 @@ function parseTokens(tokens: readonly Token[], convertTo: string | undefined): P
   return new Parser(tokens).parse(convertTo);
 }
 
+function clockExpr(token: Extract<Token, { kind: "clock" }>): Extract<Ast, { kind: "clock" }> {
+  return {
+    kind: "clock",
+    hour: token.hour,
+    minute: token.minute,
+    second: token.second,
+  };
+}
+
+/** `3pm PST` */
+function zonedClock(clock: Token | undefined, zone: Token | undefined): ParseResult | undefined {
+  if (
+    clock === undefined ||
+    zone === undefined ||
+    clock.kind !== "clock" ||
+    zone.kind !== "timezone"
+  ) {
+    return undefined;
+  }
+  return okParse({
+    kind: "zoned",
+    inner: clockExpr(clock),
+    zoneId: zone.zoneId,
+  });
+}
+
+/** `now in Tokyo` */
+function convertedNow(
+  now: Token | undefined,
+  converter: Token | undefined,
+  zone: Token | undefined,
+): ParseResult | undefined {
+  if (
+    now === undefined ||
+    converter === undefined ||
+    zone === undefined ||
+    now.kind !== "now" ||
+    converter.kind !== "converter" ||
+    zone.kind !== "timezone"
+  ) {
+    return undefined;
+  }
+  return okParse({ kind: "convert-zone", expr: { kind: "now" }, toZoneId: zone.zoneId });
+}
+
+/** `3pm PST in Tokyo` */
+function convertedClock(
+  clock: Token | undefined,
+  from: Token | undefined,
+  converter: Token | undefined,
+  to: Token | undefined,
+): ParseResult | undefined {
+  if (
+    clock === undefined ||
+    from === undefined ||
+    converter === undefined ||
+    to === undefined ||
+    clock.kind !== "clock" ||
+    from.kind !== "timezone" ||
+    converter.kind !== "converter" ||
+    to.kind !== "timezone"
+  ) {
+    return undefined;
+  }
+  return okParse({
+    kind: "convert-zone",
+    expr: { kind: "zoned", inner: clockExpr(clock), zoneId: from.zoneId },
+    toZoneId: to.zoneId,
+  });
+}
+
 function parseTimeQuery(tokens: readonly Token[]): ParseResult | undefined {
   const first = tokens[0];
   if (first === undefined || (first.kind !== "clock" && first.kind !== "now")) {
     return undefined;
   }
 
-  if (
-    tokens.length === 4 &&
-    tokens[0]?.kind === "clock" &&
-    tokens[1]?.kind === "timezone" &&
-    tokens[2]?.kind === "converter" &&
-    tokens[3]?.kind === "timezone"
-  ) {
-    return {
-      ok: true,
-      ast: {
-        kind: "convert-zone",
-        expr: {
-          kind: "zoned",
-          inner: {
-            kind: "clock",
-            hour: tokens[0].hour,
-            minute: tokens[0].minute,
-            second: tokens[0].second,
-          },
-          zoneId: tokens[1].zoneId,
-        },
-        toZoneId: tokens[3].zoneId,
-      },
-    };
+  if (tokens.length === 2) {
+    return zonedClock(tokens[0], tokens[1]) ?? failedParse();
   }
-
-  if (tokens.length === 2 && tokens[0]?.kind === "clock" && tokens[1]?.kind === "timezone") {
-    return {
-      ok: true,
-      ast: {
-        kind: "zoned",
-        inner: {
-          kind: "clock",
-          hour: tokens[0].hour,
-          minute: tokens[0].minute,
-          second: tokens[0].second,
-        },
-        zoneId: tokens[1].zoneId,
-      },
-    };
+  if (tokens.length === 3) {
+    return convertedNow(tokens[0], tokens[1], tokens[2]) ?? failedParse();
   }
-
-  if (
-    tokens.length === 3 &&
-    tokens[0]?.kind === "now" &&
-    tokens[1]?.kind === "converter" &&
-    tokens[2]?.kind === "timezone"
-  ) {
-    return {
-      ok: true,
-      ast: { kind: "convert-zone", expr: { kind: "now" }, toZoneId: tokens[2].zoneId },
-    };
+  if (tokens.length === 4) {
+    return convertedClock(tokens[0], tokens[1], tokens[2], tokens[3]) ?? failedParse();
   }
-
   return failedParse();
 }
 
