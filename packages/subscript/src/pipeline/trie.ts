@@ -106,7 +106,7 @@ function build(volume: VolumeLocale): TrieNode {
 
 const tries = new Map<string, TrieNode>();
 
-/** Tries are immutable once built; keyed by volume locale. */
+/** Tries are immutable once built; keyed by volume locale (`us` / `gb`). */
 export function trieFor(locale: string): TrieNode {
   const volume = volumeLocale(locale);
   let trie = tries.get(volume);

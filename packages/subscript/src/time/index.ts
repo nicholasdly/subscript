@@ -7,6 +7,7 @@
 import type { ZonedTime } from "../types.ts";
 import { catalogZone, type ZoneDef } from "./table.ts";
 
+/** Civil date and time. Month and day are 1-based; hour is 0–23. */
 export type Wall = {
   readonly year: number;
   readonly month: number;
@@ -16,6 +17,7 @@ export type Wall = {
   readonly second: number;
 };
 
+/** Convert between epoch milliseconds and civil time in an IANA zone. */
 export type TzEngine = {
   wall(epochMs: number, iana: string): Wall;
   instant(wall: Wall, iana: string): number | undefined;
@@ -84,6 +86,7 @@ function syntheticOffset(id: string): ZoneDef | undefined {
   };
 }
 
+/** Catalog row, or a synthetic `utc±HHMM` offset. */
 export function lookupZone(id: string): ZoneDef | undefined {
   return catalogZone(id) ?? syntheticOffset(id);
 }
@@ -154,6 +157,10 @@ function partsToWall(parts: Intl.DateTimeFormatPart[]): Wall {
   };
 }
 
+/**
+ * Wall-clock conversion on `Intl.DateTimeFormat`. Formatters are cached per
+ * IANA id. Offset abbreviations skip this and use `offsetWall` instead.
+ */
 export function createTzEngine(): TzEngine {
   const formatters = new Map<string, Intl.DateTimeFormat>();
 
@@ -174,6 +181,11 @@ export function createTzEngine(): TzEngine {
     return wallMs(wall(epochMs, iana)) - epochMs;
   }
 
+  /**
+   * Inverse of `wall`. DST overlaps yield two instants; we take the earlier
+   * (Temporal `compatible`). Gaps yield none that match; we then pick the
+   * later seed-derived candidate.
+   */
   function instant(local: Wall, iana: string): number | undefined {
     try {
       formatter(iana);
@@ -267,6 +279,10 @@ export function toZonedTime(
   };
 }
 
+/**
+ * Civil date and time of `zoned` in its own zone. Undefined if the epoch or
+ * zone id is not usable.
+ */
 export function toWall(zoned: ZonedTime, engine: TzEngine = defaultEngine): Wall | undefined {
   if (!isValidEpoch(zoned.epochMilliseconds)) {
     return undefined;

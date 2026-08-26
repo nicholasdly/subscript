@@ -67,6 +67,10 @@ function meridiemDots(source: string, index: number): "am" | "pm" | undefined {
   return undefined;
 }
 
+/**
+ * Rewrite Unicode so the lexer sees ASCII operators, `am`/`pm`, and `°C`/`°F`.
+ * `starts` maps each output index back to the original input for `spans()`.
+ */
 export function normalize(input: string): Normalized {
   const normalized = normalizeNfc(input);
   const source = normalized.text;
@@ -100,6 +104,7 @@ export function normalize(input: string): Normalized {
   return { text: out.join(""), starts };
 }
 
+/** Map a normalized index back to the original input, for `spans()`. */
 export function sourceIndex(normalized: Normalized, index: number): number {
   return normalized.starts[index] ?? normalized.starts.at(-1) ?? 0;
 }

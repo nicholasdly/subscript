@@ -3,6 +3,11 @@
 A working plan for `packages/subscript`, derived from [`research.md`](./research.md) and
 [`goal.md`](./goal.md). Section references like §5.1 point into the research document.
 
+The package has since shipped. Treat this document as design intent, not a
+status report. Settled facts live in [`history.md`](./history.md). The public
+API lives in [`packages/subscript/README.md`](../packages/subscript/README.md)
+and in JSDoc on `src/index.ts`.
+
 Where the research presents a fork, this document picks a side and says why. Where it presents an
 open question, this document says whether that question blocks us now or later. A plan whose every
 item is "it depends" is not a plan.

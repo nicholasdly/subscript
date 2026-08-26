@@ -23,6 +23,7 @@ export type IanaZone = {
   readonly source: ZoneSource;
 };
 
+/** A catalog zone: a fixed offset (`PST`) or an IANA id (`America/Los_Angeles`). */
 export type ZoneDef = OffsetZone | IanaZone;
 
 const OFFSET_SOURCE: ZoneSource = {

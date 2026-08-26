@@ -1,4 +1,9 @@
-/** Token and AST shapes. The parser never sees an `ambiguous` token — `rank.ts` splits those first. */
+/**
+ * Token and AST shapes. The parser never sees an `ambiguous` token; `rank.ts`
+ * splits those first.
+ */
+
+/** `to`, `in`, `as`, or `→`. `in` may also be inch; that is {@link AmbiguousToken}. */
 export type ConverterWord = "to" | "in" | "as" | "\u2192";
 
 export type OperatorChar = "+" | "-" | "*" | "/" | "^" | "(" | ")";
@@ -9,9 +14,14 @@ export type BinaryOp = "+" | "-" | "*" | "/" | "^";
 export type Located = {
   readonly start: number;
   readonly end: number;
+  /** Slice of the normalized string, not the original graphemes. */
   readonly raw: string;
 };
 
+/**
+ * A token the parser may see. `clock` / `now` / `timezone` are time-query
+ * only; leftover `unknown` fails the parse.
+ */
 export type Token =
   | (Located & { readonly kind: "number"; readonly value: number })
   | (Located & { readonly kind: "unit"; readonly unitId: string })
@@ -40,6 +50,11 @@ export type AmbiguousToken = Located & {
 
 export type LexToken = Token | AmbiguousToken;
 
+/**
+ * Evaluated by `evaluateAst`. Time queries use `zoned` / `convert-zone`;
+ * arithmetic uses the rest. Bare `now` and `clock` are not expressions until
+ * they sit inside a zoned node.
+ */
 export type Ast =
   | { kind: "number"; value: number }
   | { kind: "quantity"; value: number; unitId: string }

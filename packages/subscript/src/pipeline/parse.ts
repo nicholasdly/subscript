@@ -8,6 +8,7 @@ import { NODE_COUNT_LIMIT, PARSE_DEPTH_LIMIT } from "../limits.ts";
 import type { LimitName } from "../types.ts";
 import type { Ast, BinaryOp, Token } from "./token.ts";
 
+/** Success, or a failed parse. `limit` is set when a cap fired rather than a grammar miss. */
 export type ParseResult =
   | { readonly ok: true; readonly ast: Ast }
   | { readonly ok: false; readonly limit?: LimitName };
@@ -269,8 +270,9 @@ function parseTimeQuery(tokens: readonly Token[]): ParseResult | undefined {
 }
 
 /**
- * A trailing `converter unit` or bare trailing `unit` is the conversion target;
- * everything before it is the expression. Anything left over is a failure.
+ * Tokens to AST. Time queries are a few exact shapes (`3pm PST in Tokyo`);
+ * everything else is Pratt. A trailing `to ft` (or a bare trailing unit) is
+ * the conversion target. Leftover tokens mean the input is not an expression.
  */
 export function parse(tokens: readonly Token[]): ParseResult {
   const time = parseTimeQuery(tokens);

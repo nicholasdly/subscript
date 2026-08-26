@@ -18,6 +18,7 @@ import type { Ast } from "./token.ts";
  * The formatted `text` is filled in later by the conductor.
  */
 
+/** Clock and zone engine for one evaluation. `text` is filled in later. */
 export type EvalCtx = {
   readonly instant: Instant;
   readonly engine: TzEngine;

@@ -259,6 +259,10 @@ function readOffsetZone(text: string, from: number): { zoneId: string; end: numb
   return { zoneId: offsetZoneId(offsetMinutes), end: rest.end };
 }
 
+/**
+ * Tokenize a normalized string. `in` is an `ambiguous` token (converter or
+ * inch); `enumerateReadings` splits those before parse.
+ */
 export function lex(
   normalized: Normalized,
   trie: TrieNode,

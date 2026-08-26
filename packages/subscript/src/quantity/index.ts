@@ -102,6 +102,10 @@ function largerUnit(a: UnitDef, b: UnitDef): UnitDef {
   return a.scale >= b.scale ? a : b;
 }
 
+/**
+ * Build a {@link Quantity} from a catalog id (`"metre"`, `"celsius"`).
+ * Omit `unitId` for a dimensionless value. Aliases like `"c"` are not ids.
+ */
 export function quantity(value: number, unitId: string = DIMENSIONLESS.id): Result {
   if (!numeric.isFiniteNumber(value)) {
     return precisionLoss();
@@ -117,6 +121,10 @@ function convertible(from: UnitDef, to: UnitDef): boolean {
   return !absoluteToInterval && !intervalToAbsolute;
 }
 
+/**
+ * Convert `qty` to another catalog id of the same dimension.
+ * Absolute temperatures do not convert to intervals (`celsius` ↛ `delta-celsius`).
+ */
 export function convert(qty: Quantity, toId: string): Result {
   return withUnit(qty, (from) => {
     const to = lookupUnit(toId);
@@ -130,6 +138,11 @@ export function convert(qty: Quantity, toId: string): Result {
   });
 }
 
+/**
+ * Add two quantities. A dimensionless operand assimilates the other unit.
+ * Within a dimension the larger unit wins. Two absolute temperatures cannot
+ * add; an interval (or kelvin) may add to an absolute.
+ */
 export function add(a: Quantity, b: Quantity): Result {
   return withUnits(a, b, (aDef, bDef) => {
     if (isDimensionless(bDef.dimension)) {
@@ -159,6 +172,10 @@ function intervalUnit(def: UnitDef): UnitDef | undefined {
   return def.differenceId === undefined ? undefined : lookupUnit(def.differenceId);
 }
 
+/**
+ * Subtract `b` from `a`. Two absolute temperatures yield the interval unit
+ * (`25 °C − 20 °C` → `5 Δ°C`). An interval minus an absolute is a mismatch.
+ */
 export function sub(a: Quantity, b: Quantity): Result {
   return withUnits(a, b, (aDef, bDef) => {
     if (isDimensionless(bDef.dimension)) {
@@ -189,6 +206,10 @@ export function sub(a: Quantity, b: Quantity): Result {
   });
 }
 
+/**
+ * Multiply two quantities. Absolute temperatures cannot multiply.
+ * The result is named only if the catalog has that derived unit (`m × m` → `m²`).
+ */
 export function mul(a: Quantity, b: Quantity): Result {
   return withUnits(a, b, (aDef, bDef) => {
     if (aDef.affine === "absolute" || bDef.affine === "absolute") {
@@ -209,6 +230,10 @@ export function mul(a: Quantity, b: Quantity): Result {
   });
 }
 
+/**
+ * Divide `a` by `b`. Absolute temperatures cannot divide.
+ * The result is named only if the catalog has that derived unit (`m / s` → `m/s`).
+ */
 export function div(a: Quantity, b: Quantity): Result {
   return withUnits(a, b, (aDef, bDef) => {
     if (aDef.affine === "absolute" || bDef.affine === "absolute") {
@@ -226,6 +251,10 @@ export function div(a: Quantity, b: Quantity): Result {
   });
 }
 
+/**
+ * Square root of a quantity. Absolute temperatures cannot take a root.
+ * The result is named only if the catalog has that derived unit (`√m²` → `m`).
+ */
 export function sqrt(qty: Quantity): Result {
   return withUnit(qty, (def) => {
     if (def.affine === "absolute") {

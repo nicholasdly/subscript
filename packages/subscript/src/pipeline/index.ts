@@ -124,6 +124,11 @@ function withFormat(
   return { ...result, text: format(result.value) };
 }
 
+/**
+ * Run normalize → lex → readings → rewrite → parse → eval → format.
+ * Prefers the reading that spends `in` as a converter whenever that reading
+ * evaluates; otherwise the first success. `alternates` lists other successes.
+ */
 export function runPipeline(
   input: string,
   trie: TrieNode,
