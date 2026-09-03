@@ -58,16 +58,22 @@ function insert(root: TrieNode, alias: string, value: TrieValue): void {
   node.value = merge(node.value, value);
 }
 
-/** A key inserted as both a unit and a converter becomes one ambiguous reading. */
+/** A key inserted as both inch and the converter `in` becomes one ambiguous reading. */
 function merge(existing: TrieValue | undefined, added: TrieValue): TrieValue {
   if (existing === undefined) {
     return added;
   }
-  if (existing.kind === "unit" && added.kind === "converter") {
-    return { kind: "ambiguous", converter: added.converter, unitId: existing.unitId };
-  }
-  if (existing.kind === "converter" && added.kind === "unit") {
-    return { kind: "ambiguous", converter: existing.converter, unitId: added.unitId };
+  const inchAndIn =
+    (existing.kind === "unit" &&
+      existing.unitId === "inch" &&
+      added.kind === "converter" &&
+      added.converter === "in") ||
+    (existing.kind === "converter" &&
+      existing.converter === "in" &&
+      added.kind === "unit" &&
+      added.unitId === "inch");
+  if (inchAndIn) {
+    return { kind: "ambiguous", converter: "in", unitId: "inch" };
   }
   return existing;
 }

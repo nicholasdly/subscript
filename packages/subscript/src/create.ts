@@ -56,7 +56,7 @@ export function createSubscript(config: SubscriptConfig = {}): Subscript {
 
   return {
     evaluate(input: string): Result {
-      return runPipeline(input, trie, format, now, ambiguousClock, engine).result;
+      return runPipeline(input, trie, format, now, ambiguousClock, engine);
     },
     spans(input: string): readonly Span[] {
       return spansForInput(input, trie, ambiguousClock);

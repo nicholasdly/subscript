@@ -22,13 +22,12 @@ later. A plan whose every item is "it depends" is not a plan.
 zero runtime dependencies, and covers arithmetic, unit conversion, and time zones.
 Queries and aliases are English. `locale` only selects US vs imperial volume
 (`en-GB` → imperial gallon, pint, cup, quart, tablespoon, and fluid ounce;
-everything else → US). `apps/web` is a playground (input → answer plus a JSON
-dump); it is not yet the product demo described in 3.3.
+everything else → US).
 
 | Area       | State                                                                                                    |
 | ---------- | -------------------------------------------------------------------------------------------------------- |
 | Public API | `evaluate`, `createSubscript` (including `.spans`), quantity helpers, `@nicholasdly/subscript/internals` |
-| Pipeline   | normalize → lex → readings → rewrite → parse → eval → format                                             |
+| Pipeline   | normalize → lex → readings → parse → eval → format                                                       |
 | Tests      | Vitest; accept/reject fixture corpora                                                                    |
 | Publishing | Changesets; MIT `LICENSE` at repo root and in `packages/subscript`                                       |
 | Currency   | Removed; out of scope (see M4)                                                                           |
@@ -61,11 +60,12 @@ original plan are met unless noted.
 - Hand-authored unit table (length, mass, time, temperature, area, volume, speed,
   force, energy, power, pressure, information) with a cited source per entry
 
-### M2 — Lexer, rewrite, parser ✓
+### M2 — Lexer and parser ✓
 
 - Leftmost-longest trie; `in` as converter vs inch via alternate readings and ranking
 - Multi-word aliases live in the trie (`fluid ounce`, `nautical mile`,
-  `light year`, `pacific time`, …). Rewrite inserts implicit `+` for `5 ft 11 in`
+  `light year`, `pacific time`, …). Adjacent quantities add (`5 ft 11 in`,
+  `5 m 11 cm`), same binding as `+`.
 - Pratt parser; strict full-input consumption
 - Input limits: 256 chars, parse depth 32, 64 AST nodes, `|exponent|` 1000; no
   `eval` / `new Function`
@@ -127,13 +127,7 @@ policy is in the package README: typed `G` is gram, compact `G` is display-only,
 
 Track progress by corpus pass rate, not by feature count.
 
-### 2.2 Application and repo
-
-| Item                    | Notes                                                                           |
-| ----------------------- | ------------------------------------------------------------------------------- |
-| `apps/web` product demo | 3.3: units-and-arithmetic calculator with `spans` highlighting, not a JSON dump |
-
-### 2.3 Explicitly deferred (not oversights)
+### 2.2 Explicitly deferred (not oversights)
 
 Documented decisions — easy to add later, not on the critical path:
 
@@ -147,7 +141,7 @@ Documented decisions — easy to add later, not on the critical path:
 - Variables and multi-line documents; bytecode / VM
 - Close read of `solve-engine` source
 
-### 2.4 Research questions — closed vs open
+### 2.3 Research questions — closed vs open
 
 **Closed by shipping:**
 
@@ -231,11 +225,6 @@ configuration the 95% path was never supposed to need. Neither belongs in the
 library. Historical rates, crypto, and an injected provider are the same tradeoff
 deferred; they are not later work.
 
-When application work begins, `apps/web` should demo a units-and-arithmetic
-calculator first. A demo that does one domain convincingly is a better artifact
-than one that does four badly. **This is the main remaining application
-milestone** (see 2.2).
-
 ### 3.4 Hand-authored unit data, cited per entry; `subscript` stays MIT
 
 The GNU Units database is GPL-3.0-or-later and the license header is in the data
@@ -314,7 +303,7 @@ subscript.spans("20 c to f");
 ```
 
 `spans()` is a stable, documented, semantic view. The raw pipeline stages
-(`normalize`, `lex`, `rewrite`, `parse`) are exported from
+(`normalize`, `lex`, `parse`) are exported from
 `@nicholasdly/subscript/internals` and explicitly **not** covered by semver.
 
 ### 4.4 The result type
@@ -348,7 +337,7 @@ both is neither.
 ## 5. How to approach each kind of parsing
 
 The pipeline is settled — every mature system in the space converges on it (§2):
-normalize → lex → rewrite → parse → evaluate → format. What follows is per-domain
+normalize → lex → parse → evaluate → format. What follows is per-domain
 design reference; the engine matches this shape.
 
 ### 5.1 Arithmetic
@@ -380,11 +369,12 @@ alternate readings; the conductor ranks readings and prefers `in` as converter
 when that reading evaluates. Matching is ASCII case-folded. `locale` selects
 which volume aliases are in the trie, not a ranking tiebreaker.
 
-### 5.4 The rewrite stage
+### 5.4 Adjacent quantities
 
-Implicit operator insertion (`5 ft 11 in`). Phrase fusion is not a rewrite step —
-multi-word aliases are keys in the trie (`light year`, `fluid ounce`,
-`nautical mile`, `pacific time`).
+A quantity beside another quantity is `+` (`5 ft 11 in`, `5 m 11 cm`), at the
+same binding power as explicit `+`. Bare numbers beside each other (`2 3`) are
+not an expression. Phrase fusion is not implicit addition — multi-word aliases
+are keys in the trie (`light year`, `fluid ounce`, `nautical mile`, `pacific time`).
 
 ### 5.5 Currency — out of scope
 
@@ -411,7 +401,7 @@ place: negative corpus, typed failures, `alternates`, precision refusal.
 ### 6.2 Data licensing is a real legal exposure
 
 Hand-authored, cited data only. No GPL vendoring. Before touching GeoNames, IATA,
-or UDUNITS, answer the license questions in 2.4.
+or UDUNITS, answer the license questions in 2.3.
 
 ### 6.3 Every ambiguity has no correct answer
 
@@ -443,7 +433,7 @@ tables are the bulk of the bundle.
 
 The reasons to build are control over the alias table, trigger behavior, and
 ambiguity policy. The parser was never the moat. A close read of `solve-engine`
-is deferred (2.3).
+is deferred (2.2).
 
 ### 6.9 Performance is a constraint, not a goal
 

@@ -21,6 +21,14 @@ describe("ambiguous in", () => {
     expect(createSubscript().evaluate("5 ft 11 in")).toBeQuantity("foot", 5.916666666666667, 1e-12);
   });
 
+  test("5 m 11 cm is the same juxtaposition add", () => {
+    expect(subscript.evaluate("5 m 11 cm")).toBeQuantity("metre", 5.11, 1e-12);
+  });
+
+  test("6ft + 2in is explicit addition", () => {
+    expect(subscript.evaluate("6ft + 2in")).toBeQuantity("foot", 6 + 2 / 12, 1e-12);
+  });
+
   test("5 ft 11 in cm converts the mixed length", () => {
     expect(unitId("5 ft 11 in cm")).toBe("centimetre");
   });

@@ -39,7 +39,7 @@ export type Token =
   | (Located & { readonly kind: "unknown" });
 
 /**
- * A span with two readings. Only `in` (converter or inch) is ambiguous in M2.
+ * A span with two readings. Only `in` (converter or inch) is ambiguous.
  * `enumerateReadings` splits it, so the parser never sees one.
  */
 export type AmbiguousToken = Located & {

@@ -1,15 +1,15 @@
 /**
- * Stage 3: expand ambiguous tokens into candidate readings.
+ * Stage 3: expand `in` (converter vs inch) into candidate readings.
  *
- * Today that is only `in` (converter vs inch). The conductor parses each
- * reading and picks a winner.
+ * No other alias is ambiguous. The conductor parses each reading and picks a
+ * winner. Two `in` tokens still need the cross-product (`1 in in cm`).
  */
 import { MAX_READINGS } from "../limits.ts";
 import type { LexToken, Token } from "./token.ts";
 
 /**
- * Every combination of readings for the ambiguous tokens in the stream, or
- * `undefined` when there are too many to be worth trying.
+ * Every combination of `in` as converter vs inch, or `undefined` when there
+ * are too many to be worth trying.
  */
 export function enumerateReadings(tokens: readonly LexToken[]): Token[][] | undefined {
   let rows: Token[][] = [[]];
@@ -25,8 +25,8 @@ export function enumerateReadings(tokens: readonly LexToken[]): Token[][] | unde
       return undefined;
     }
     const { start, end, raw } = token;
-    const asConverter: Token = { start, end, raw, kind: "converter", converter: token.converter };
-    const asUnit: Token = { start, end, raw, kind: "unit", unitId: token.unitId };
+    const asConverter: Token = { start, end, raw, kind: "converter", converter: "in" };
+    const asUnit: Token = { start, end, raw, kind: "unit", unitId: "inch" };
     rows = rows.flatMap((row) => [
       [...row, asConverter],
       [...row, asUnit],

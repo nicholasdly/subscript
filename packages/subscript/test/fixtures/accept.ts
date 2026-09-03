@@ -33,7 +33,19 @@ export const accept: Fixture[] = [
       value: 180.34,
       eps: 1e-9,
     },
-    notes: "Rewrite inserts +; the converter reading of in does not parse, so no alternates.",
+    notes: "Juxtaposed quantities add. The converter reading of in does not parse, so no alternates.",
+  },
+  {
+    name: "mixed-m-cm",
+    input: "5 m 11 cm",
+    expect: {
+      ok: true,
+      text: "5.11 m",
+      unitId: "metre",
+      value: 5.11,
+      eps: 1e-12,
+    },
+    notes: "Same juxtaposition add as 5 ft 11 in; not foot-inch-specific.",
   },
   {
     name: "in-converter-vs-inch",
@@ -74,7 +86,7 @@ export const accept: Fixture[] = [
         },
       ],
     },
-    notes: "Unlike 5 ft 11 in cm, the explicit + lets both readings evaluate.",
+    notes: "Unlike 5 ft 11 in cm, the explicit + lets the converter reading of in evaluate too.",
   },
   {
     name: "lex-min-not-m",
