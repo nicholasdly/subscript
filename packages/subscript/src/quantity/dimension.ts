@@ -1,6 +1,7 @@
 /**
- * Dimension vectors: seven SI base exponents (T L M I Θ N J) plus information
- * (ISO 80000-13). Used to decide whether two units can convert or combine.
+ * Dimension vectors: time, length, mass, and temperature, plus information
+ * (ISO 80000-13). Ampere, mole, and candela are omitted until the catalog
+ * has those units. Used to decide whether two units can convert or combine.
  */
 export type Rational = { readonly n: number; readonly d: number };
 
@@ -8,10 +9,7 @@ export type Dimension = readonly [
   Rational, // T — second
   Rational, // L — metre
   Rational, // M — kilogram
-  Rational, // I — ampere
   Rational, // Θ — kelvin
-  Rational, // N — mole
-  Rational, // J — candela
   Rational, // info — bit
 ];
 
@@ -19,10 +17,7 @@ export type DimensionExponents = {
   readonly T?: Rational;
   readonly L?: Rational;
   readonly M?: Rational;
-  readonly I?: Rational;
   readonly Θ?: Rational;
-  readonly N?: Rational;
-  readonly J?: Rational;
   readonly info?: Rational;
 };
 
@@ -72,10 +67,7 @@ export function dimension(exponents: DimensionExponents = {}): Dimension {
     exponents.T ?? ZERO,
     exponents.L ?? ZERO,
     exponents.M ?? ZERO,
-    exponents.I ?? ZERO,
     exponents.Θ ?? ZERO,
-    exponents.N ?? ZERO,
-    exponents.J ?? ZERO,
     exponents.info ?? ZERO,
   ];
 }
@@ -86,10 +78,7 @@ export function dimensionsEqual(a: Dimension, b: Dimension): boolean {
     rationalsEqual(a[1], b[1]) &&
     rationalsEqual(a[2], b[2]) &&
     rationalsEqual(a[3], b[3]) &&
-    rationalsEqual(a[4], b[4]) &&
-    rationalsEqual(a[5], b[5]) &&
-    rationalsEqual(a[6], b[6]) &&
-    rationalsEqual(a[7], b[7])
+    rationalsEqual(a[4], b[4])
   );
 }
 
@@ -104,9 +93,6 @@ export function mulDimensions(a: Dimension, b: Dimension): Dimension {
     addRationals(a[2], b[2]),
     addRationals(a[3], b[3]),
     addRationals(a[4], b[4]),
-    addRationals(a[5], b[5]),
-    addRationals(a[6], b[6]),
-    addRationals(a[7], b[7]),
   ];
 }
 
@@ -117,9 +103,6 @@ export function divDimensions(a: Dimension, b: Dimension): Dimension {
     subRationals(a[2], b[2]),
     subRationals(a[3], b[3]),
     subRationals(a[4], b[4]),
-    subRationals(a[5], b[5]),
-    subRationals(a[6], b[6]),
-    subRationals(a[7], b[7]),
   ];
 }
 
@@ -130,8 +113,5 @@ export function scaleDimension(dim: Dimension, factor: Rational): Dimension {
     mulRationals(dim[2], factor),
     mulRationals(dim[3], factor),
     mulRationals(dim[4], factor),
-    mulRationals(dim[5], factor),
-    mulRationals(dim[6], factor),
-    mulRationals(dim[7], factor),
   ];
 }

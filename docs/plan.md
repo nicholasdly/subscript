@@ -24,13 +24,13 @@ Queries and aliases are English. `locale` only selects US vs imperial volume
 (`en-GB` → imperial gallon, pint, cup, quart, tablespoon, and fluid ounce;
 everything else → US).
 
-| Area       | State                                                                                                    |
-| ---------- | -------------------------------------------------------------------------------------------------------- |
-| Public API | `evaluate`, `createSubscript` (including `.spans`), quantity helpers, `@nicholasdly/subscript/internals` |
-| Pipeline   | normalize → lex → readings → parse → eval → format                                                       |
-| Tests      | Vitest; accept/reject fixture corpora                                                                    |
-| Publishing | Changesets; MIT `LICENSE` at repo root and in `packages/subscript`                                       |
-| Currency   | Removed; out of scope (see M4)                                                                           |
+| Area       | State                                                                |
+| ---------- | -------------------------------------------------------------------- |
+| Public API | `evaluate`, `createSubscript` (including `.spans`), quantity helpers |
+| Pipeline   | normalize → lex → readings → parse → eval → format                   |
+| Tests      | Vitest; accept/reject fixture corpora                                |
+| Publishing | Changesets; MIT `LICENSE` at repo root and in `packages/subscript`   |
+| Currency   | Removed; out of scope (see M4)                                       |
 
 **Progress metric going forward:** corpus pass rate and alias coverage, not parser
 elegance (§14).
@@ -52,8 +52,9 @@ original plan are met unless noted.
 
 ### M1 — `Quantity`, dimensions, affine units ✓
 
-- Rational-exponent dimension vector over seven SI base dimensions plus
-  information (ISO 80000-13)
+- Rational-exponent dimension vector over time, length, mass, and temperature,
+  plus information (ISO 80000-13). Ampere, mole, and candela stay out until
+  the catalog has those units.
 - Absolute vs difference temperature as distinct affine kinds
 - Typed `dimension-mismatch` failures; no throws for input-shaped errors
 - Mixed-unit rules: assimilation, larger unit wins, named products only
@@ -100,7 +101,7 @@ network. `100 usd in eur` is `not-an-expression`. See 3.3 and 5.5.
 | 3.2 float64 + display predictability    | format-time rounding; checked add/sub; operators elsewhere                |
 | 3.3 Units first, time last, no currency | Matches plan; currency reversed and dropped                               |
 | 3.4 Hand-authored MIT data              | Cited entries in `units/table.ts`; no GPL vendoring                       |
-| 4.1–4.3 Three API layers                | `evaluate` / `createSubscript` / `.spans` + `internals`                   |
+| 4.1–4.3 Three API layers                | `evaluate` / `createSubscript` / `.spans`                                 |
 | 4.4 Result type                         | `Result`, `Failure`, `alternates` on success; corpus covers `in`          |
 | 5.6 Time zone policy                    | Closed list; PST/PDT vs `pacific time`; capital-city rule; `IST` is India |
 
@@ -302,9 +303,8 @@ subscript.spans("20 c to f");
 // [{ start: 0, end: 2, kind: "number" }, { start: 3, end: 4, kind: "unit" }, ...]
 ```
 
-`spans()` is a stable, documented, semantic view. The raw pipeline stages
-(`normalize`, `lex`, `parse`) are exported from
-`@nicholasdly/subscript/internals` and explicitly **not** covered by semver.
+`spans()` is a stable, documented, semantic view. Raw pipeline stages
+(`normalize`, `lex`, `parse`) are not a published export.
 
 ### 4.4 The result type
 
@@ -356,11 +356,13 @@ shorthand (`km m`).
 
 ### 5.2 Units
 
-Dimension vector of **rational** exponents over seven SI base dimensions plus
-information (§7.1, ISO 80000-13). Absolute and difference temperatures are
-**distinct types** (§7.2). Mixed-unit arithmetic follows Soulver's published
-rules (§6). Calendar-unit lengths (year, month) are named, documented constants
-in the catalog. A light year uses the Julian year, not that catalog year.
+Dimension vector of **rational** exponents over time, length, mass, and
+temperature, plus information (§7.1, ISO 80000-13). Ampere, mole, and candela
+are omitted until the catalog has those units. Absolute and difference
+temperatures are **distinct types** (§7.2). Mixed-unit arithmetic follows
+Soulver's published rules (§6). Calendar-unit lengths (year, month) are named,
+documented constants in the catalog. A light year uses the Julian year, not
+that catalog year.
 
 ### 5.3 Lexing
 

@@ -42,16 +42,6 @@
         "default": "./dist/index.cjs"
       }
     },
-    "./internals": {
-      "import": {
-        "types": "./dist/internals.d.ts",
-        "default": "./dist/internals.js"
-      },
-      "require": {
-        "types": "./dist/internals.d.cts",
-        "default": "./dist/internals.cjs"
-      }
-    },
     "./package.json": "./package.json"
   },
   "publishConfig": {
