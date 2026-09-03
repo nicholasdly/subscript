@@ -33,6 +33,48 @@ export const accept: Fixture[] = [
       value: 180.34,
       eps: 1e-9,
     },
+    notes: "Rewrite inserts +; the converter reading of in does not parse, so no alternates.",
+  },
+  {
+    name: "in-converter-vs-inch",
+    input: "10 m + 2 in m",
+    expect: {
+      ok: true,
+      text: "12 m",
+      unitId: "metre",
+      value: 12,
+      alternates: [
+        {
+          text: "10.0508 m",
+          unitId: "metre",
+          value: 10 + 2 * 0.0254,
+          reason: "in as inch",
+          eps: 1e-12,
+        },
+      ],
+    },
+    notes: "in as converter wins (10 m + 2, then to m). The inch reading is 10 m + 2 in.",
+  },
+  {
+    name: "in-converter-vs-inch-mixed",
+    input: "5 ft + 11 in cm",
+    expect: {
+      ok: true,
+      text: "487.68 cm",
+      unitId: "centimetre",
+      value: 487.68,
+      eps: 1e-9,
+      alternates: [
+        {
+          text: "180.34 cm",
+          unitId: "centimetre",
+          value: 180.34,
+          reason: "in as inch",
+          eps: 1e-9,
+        },
+      ],
+    },
+    notes: "Unlike 5 ft 11 in cm, the explicit + lets both readings evaluate.",
   },
   {
     name: "lex-min-not-m",
@@ -160,6 +202,74 @@ export const accept: Fixture[] = [
       unitId: "litre",
       value: 4.54609,
     },
+  },
+  {
+    name: "cup-us",
+    input: "1 cup to ml",
+    expect: {
+      ok: true,
+      text: "236.588 mL",
+      unitId: "millilitre",
+      value: 236.5882365,
+      eps: 1e-9,
+    },
+  },
+  {
+    name: "cup-gb",
+    input: "1 cup to ml",
+    locale: "en-GB",
+    expect: {
+      ok: true,
+      text: "284.131 mL",
+      unitId: "millilitre",
+      value: 284.130625,
+      eps: 1e-9,
+    },
+  },
+  {
+    name: "pint-us",
+    input: "1 pint to ml",
+    expect: {
+      ok: true,
+      text: "473.176 mL",
+      unitId: "millilitre",
+      value: 473.176473,
+      eps: 1e-9,
+    },
+  },
+  {
+    name: "pint-gb",
+    input: "1 pint to ml",
+    locale: "en-GB",
+    expect: {
+      ok: true,
+      text: "568.261 mL",
+      unitId: "millilitre",
+      value: 568.26125,
+      eps: 1e-9,
+    },
+  },
+  {
+    name: "us-cup-in-gb",
+    input: "1 us cup to ml",
+    locale: "en-GB",
+    expect: {
+      ok: true,
+      text: "236.588 mL",
+      unitId: "millilitre",
+      value: 236.5882365,
+      eps: 1e-9,
+    },
+  },
+  {
+    name: "two-to-the-ten",
+    input: "2^10",
+    expect: { ok: true, text: "1.024k", unitId: "1", value: 1024 },
+  },
+  {
+    name: "exponent-magnitude",
+    input: "2^1001",
+    expect: { ok: false, reason: "limit-exceeded" },
   },
   {
     name: "oz-is-mass",

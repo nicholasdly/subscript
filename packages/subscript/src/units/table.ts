@@ -41,6 +41,14 @@ const POUND_KG = 0.45359237;
 const US_GALLON_M3 = numeric.mul(231, numeric.mul(numeric.mul(INCH_M, INCH_M), INCH_M));
 const LITRE_M3 = 0.001;
 const IMPERIAL_GALLON_M3 = numeric.mul(4.54609, LITRE_M3);
+const US_QUART_M3 = numeric.div(US_GALLON_M3, 4);
+const US_PINT_M3 = numeric.div(US_GALLON_M3, 8);
+const US_CUP_M3 = numeric.div(US_GALLON_M3, 16);
+const US_TABLESPOON_M3 = numeric.div(US_GALLON_M3, 256);
+const IMPERIAL_QUART_M3 = numeric.div(IMPERIAL_GALLON_M3, 4);
+const IMPERIAL_PINT_M3 = numeric.div(IMPERIAL_GALLON_M3, 8);
+const IMPERIAL_CUP_M3 = numeric.div(IMPERIAL_GALLON_M3, 16);
+const IMPERIAL_TABLESPOON_M3 = numeric.div(IMPERIAL_GALLON_M3, 256);
 const DAY_S = 86400;
 const YEAR_S = numeric.mul(365.2425, DAY_S);
 const CELSIUS_OFFSET = 273.15;
@@ -417,6 +425,62 @@ export const UNITS: readonly UnitDef[] = [
     dimension: VOLUME,
     scale: numeric.div(IMPERIAL_GALLON_M3, 160),
     source: { ...NIST_SP811, notes: "imperial gallon / 160" },
+  }),
+  linear({
+    id: "us-quart",
+    symbol: "qt",
+    dimension: VOLUME,
+    scale: US_QUART_M3,
+    source: { ...NIST_HB44, notes: "US gallon / 4" },
+  }),
+  linear({
+    id: "imperial-quart",
+    symbol: "imp qt",
+    dimension: VOLUME,
+    scale: IMPERIAL_QUART_M3,
+    source: { ...NIST_SP811, notes: "imperial gallon / 4" },
+  }),
+  linear({
+    id: "us-pint",
+    symbol: "pint",
+    dimension: VOLUME,
+    scale: US_PINT_M3,
+    source: { ...NIST_HB44, notes: "US gallon / 8" },
+  }),
+  linear({
+    id: "imperial-pint",
+    symbol: "imp pint",
+    dimension: VOLUME,
+    scale: IMPERIAL_PINT_M3,
+    source: { ...NIST_SP811, notes: "imperial gallon / 8" },
+  }),
+  linear({
+    id: "us-cup",
+    symbol: "cup",
+    dimension: VOLUME,
+    scale: US_CUP_M3,
+    source: { ...NIST_HB44, notes: "US gallon / 16 = 8 US fl oz" },
+  }),
+  linear({
+    id: "imperial-cup",
+    symbol: "imp cup",
+    dimension: VOLUME,
+    scale: IMPERIAL_CUP_M3,
+    source: { ...NIST_SP811, notes: "imperial gallon / 16 = 10 imperial fl oz" },
+  }),
+  linear({
+    id: "us-tablespoon",
+    symbol: "tbsp",
+    dimension: VOLUME,
+    scale: US_TABLESPOON_M3,
+    source: { ...NIST_HB44, notes: "US gallon / 256 = 1/2 US fl oz" },
+  }),
+  linear({
+    id: "imperial-tablespoon",
+    symbol: "imp tbsp",
+    dimension: VOLUME,
+    scale: IMPERIAL_TABLESPOON_M3,
+    source: { ...NIST_SP811, notes: "imperial gallon / 256 = 5/8 imperial fl oz" },
   }),
 
   linear({

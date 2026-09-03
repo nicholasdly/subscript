@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { createSubscript, isZonedTime, type Result } from "../src/index.ts";
+import { createSubscript, isZonedTime, type Alternate, type Result } from "../src/index.ts";
 import { toWall } from "../src/time/index.ts";
 import { accept } from "./fixtures/accept.ts";
 import { reject } from "./fixtures/reject.ts";
@@ -10,7 +10,6 @@ const FAILURE_KINDS = [
   "not-an-expression",
   "dimension-mismatch",
   "unknown-unit",
-  "ambiguous",
   "precision-loss",
   "limit-exceeded",
 ] as const;
@@ -26,6 +25,34 @@ function expectWellFormed(result: Result): void {
   }
   expect(result.reason).toEqual(expect.any(Object));
   expect(FAILURE_KINDS).toContain(result.reason.kind);
+}
+
+function asResult(alternate: Alternate): Result {
+  return { ok: true, value: alternate.value, text: alternate.text };
+}
+
+function expectAlternates(
+  result: Extract<Result, { ok: true }>,
+  expected: Extract<Fixture["expect"], { ok: true }>,
+): void {
+  if (!("unitId" in expected) || expected.alternates === undefined) {
+    expect.soft(result.alternates).toBeUndefined();
+    return;
+  }
+  const wanted = expected.alternates;
+  expect.soft(result.alternates).toHaveLength(wanted.length);
+  if (result.alternates === undefined) {
+    return;
+  }
+  for (const [i, alternate] of result.alternates.entries()) {
+    const exp = wanted[i];
+    if (exp === undefined) {
+      continue;
+    }
+    expect.soft(alternate.text).toBe(exp.text);
+    expect.soft(alternate.reason).toBe(exp.reason);
+    expect.soft(asResult(alternate)).toBeQuantity(exp.unitId, exp.value, exp.eps);
+  }
 }
 
 function expectFixture(result: Result, expected: Fixture["expect"]): void {
@@ -51,9 +78,11 @@ function expectFixture(result: Result, expected: Fixture["expect"]): void {
       hour: expected.zoned.hour,
       minute: expected.zoned.minute,
     });
+    expectAlternates(result, expected);
     return;
   }
   expect.soft(result).toBeQuantity(expected.unitId, expected.value, expected.eps);
+  expectAlternates(result, expected);
 }
 
 function runFixture(fixture: Fixture): void {

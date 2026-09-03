@@ -56,14 +56,14 @@ Evaluate a query. Returns a [`Result`](#results).
 
 Configured evaluator. Same contract as `evaluate`, plus `spans`.
 
-| Option           | Default       | Notes                                                                   |
-| ---------------- | ------------- | ----------------------------------------------------------------------- |
-| `locale`         | `"en-US"`     | `en-GB` treats `gallon` as imperial; every other locale treats it as US |
-| `compact`        | `true`        | Compact `k` / `M` / `G` on dimensionless `text` of 1000 or more         |
-| `now`            | `Date.now`    | Injected clock for `now in Tokyo` and dating `3pm PST`                  |
-| `ambiguousClock` | `"literal24"` | `3:00` is 03:00. `"preferDaytime"` treats 1:00–6:59 without am/pm as PM |
+| Option           | Default       | Notes                                                                                                                  |
+| ---------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `locale`         | `"en-US"`     | `en-GB` treats gallon, pint, cup, quart, tablespoon, and fluid ounce as imperial; every other locale treats them as US |
+| `compact`        | `true`        | Compact `k` / `M` / `G` on dimensionless `text` of 1000 or more                                                        |
+| `now`            | `Date.now`    | Injected clock for `now in Tokyo` and dating `3pm PST`                                                                 |
+| `ambiguousClock` | `"literal24"` | `3:00` is 03:00. `"preferDaytime"` treats 1:00–6:59 without am/pm as PM                                                |
 
-Compact suffixes are display-only. `2.5k` as input is 2.5 kelvin.
+Compact suffixes are display-only. `2.5k` as input is 2.5 kelvin. Type `pint` for a pint; `pt` is Pacific Time.
 
 ```ts
 createSubscript({ compact: false }).evaluate("100000 + 200000");
@@ -103,14 +103,13 @@ type Result =
 
 `text` is the display string, rounded to six significant figures. Time results are `ZonedTime`; narrow with `isZonedTime(result.value)`.
 
-| `reason.kind`        | When                                                                             |
-| -------------------- | -------------------------------------------------------------------------------- |
-| `not-an-expression`  | the string is not a query this package accepts                                   |
-| `dimension-mismatch` | the operands cannot combine or convert                                           |
-| `unknown-unit`       | a catalog id or derived name cannot be resolved                                  |
-| `ambiguous`          | more than one unit matches and no reading can be chosen                          |
-| `precision-loss`     | float64 would drop an addend or overflow                                         |
-| `limit-exceeded`     | input longer than 256 characters, parse depth over 32, or more than 64 AST nodes |
+| `reason.kind`        | When                                                                                |
+| -------------------- | ----------------------------------------------------------------------------------- |
+| `not-an-expression`  | the string is not a query this package accepts                                      |
+| `dimension-mismatch` | the operands cannot combine or convert                                              |
+| `unknown-unit`       | a catalog id or derived name cannot be resolved                                     |
+| `precision-loss`     | float64 would drop an addend or overflow                                            |
+| `limit-exceeded`     | input longer than 256 characters, parse depth over 32, more than 64 AST nodes, or ` | exponent | ` over 1000 |
 
 `alternates` is set when another reading of the same input also succeeds, such as `in` as converter versus inch.
 

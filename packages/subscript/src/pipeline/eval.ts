@@ -1,3 +1,4 @@
+import { EXPONENT_ABS_LIMIT } from "../limits.ts";
 import { add, convert, div, mul, quantity, sqrt, sub } from "../quantity/index.ts";
 import * as numeric from "../quantity/numeric.ts";
 import {
@@ -44,6 +45,9 @@ function power(base: Quantity, exponent: Quantity): Result {
       ok: false,
       reason: { kind: "dimension-mismatch", from: base.unit, to: exponent.unit },
     };
+  }
+  if (Math.abs(exponent.value) > EXPONENT_ABS_LIMIT) {
+    return { ok: false, reason: { kind: "limit-exceeded", limit: "exponent-magnitude" } };
   }
   return quantity(numeric.pow(base.value, exponent.value));
 }

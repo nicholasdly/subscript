@@ -18,7 +18,6 @@ const FAILURE_KINDS = [
   "not-an-expression",
   "dimension-mismatch",
   "unknown-unit",
-  "ambiguous",
   "precision-loss",
   "limit-exceeded",
 ] as const;

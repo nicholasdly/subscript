@@ -60,6 +60,14 @@ const BY_DIMENSION: Record<string, typeof LENGTH> = {
   "imperial-gallon": VOLUME,
   "us-fluid-ounce": VOLUME,
   "imperial-fluid-ounce": VOLUME,
+  "us-quart": VOLUME,
+  "imperial-quart": VOLUME,
+  "us-pint": VOLUME,
+  "imperial-pint": VOLUME,
+  "us-cup": VOLUME,
+  "imperial-cup": VOLUME,
+  "us-tablespoon": VOLUME,
+  "imperial-tablespoon": VOLUME,
   "metre-per-second": SPEED,
   "kilometre-per-hour": SPEED,
   "mile-per-hour": SPEED,
@@ -119,5 +127,19 @@ describe("legal definitions", () => {
     expect(imp?.scale).toBe(4.54609 * 0.001);
     expect(us!.scale / 0.001).toBe((231 * inch * inch * inch) / 0.001);
     expect(imp!.scale / 0.001).toBe((4.54609 * 0.001) / 0.001);
+  });
+
+  test("kitchen volumes are exact gallon subdivisions", () => {
+    const byId = Object.fromEntries(UNITS.map((unit) => [unit.id, unit]));
+    const usGallon = byId["us-gallon"]!.scale;
+    const impGallon = byId["imperial-gallon"]!.scale;
+    expect(byId["us-quart"]!.scale).toBe(usGallon / 4);
+    expect(byId["us-pint"]!.scale).toBe(usGallon / 8);
+    expect(byId["us-cup"]!.scale).toBe(usGallon / 16);
+    expect(byId["us-tablespoon"]!.scale).toBe(usGallon / 256);
+    expect(byId["imperial-quart"]!.scale).toBe(impGallon / 4);
+    expect(byId["imperial-pint"]!.scale).toBe(impGallon / 8);
+    expect(byId["imperial-cup"]!.scale).toBe(impGallon / 16);
+    expect(byId["imperial-tablespoon"]!.scale).toBe(impGallon / 256);
   });
 });
