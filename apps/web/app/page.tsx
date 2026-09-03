@@ -20,7 +20,7 @@ export default function Page() {
         </h1>
         <p className="text-muted-foreground mb-4">
           A natural language parser and evaluator for unit conversion, time zone conversion, and
-          basic math — zero dependencies and tree-shakeable.
+          arithmetic — zero dependencies and tree-shakeable.
         </p>
         <Demo />
       </div>
@@ -92,8 +92,8 @@ export default function Page() {
       <div>
         <h2 className="mb-1 text-lg font-medium">Results</h2>
         <p className="text-muted-foreground mb-4">
-          The result of a query is represented as a <Code>Result</Code> object: either a successful
-          answer or a typed failure. Nothing in the API throws for bad input — you check{" "}
+          The result of an evaluation is a <Code>Result</Code> object, representing either a
+          successful answer or a typed failure. Nothing in the API throws for bad input — you check{" "}
           <Code>ok</Code> and then read <Code>value</Code> or <Code>reason</Code> .
         </p>
         <CodeBlock language="typescript">

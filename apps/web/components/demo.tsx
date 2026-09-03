@@ -16,7 +16,7 @@ export function Demo() {
         <InputGroupInput value={query} onChange={(e) => setQuery(e.target.value)} />
         {result.ok && <InputGroupAddon align="inline-end">{result.text}</InputGroupAddon>}
       </InputGroup>
-      <div className="bg-muted text-muted-foreground rounded-lg border p-3 font-mono text-sm whitespace-pre">
+      <div className="bg-muted text-muted-foreground rounded-lg p-3 font-mono text-sm whitespace-pre">
         {JSON.stringify(result, null, 2)}
       </div>
     </div>
