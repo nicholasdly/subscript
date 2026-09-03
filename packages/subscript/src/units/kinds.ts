@@ -38,6 +38,8 @@ const ONE = rational(1);
 const TWO = rational(2);
 const THREE = rational(3);
 const NEG_ONE = rational(-1);
+const NEG_TWO = rational(-2);
+const NEG_THREE = rational(-3);
 
 export const NONE = dimension();
 export const TIME = dimension({ T: ONE });
@@ -47,3 +49,9 @@ export const TEMPERATURE = dimension({ Θ: ONE });
 export const AREA = dimension({ L: TWO });
 export const VOLUME = dimension({ L: THREE });
 export const SPEED = dimension({ L: ONE, T: NEG_ONE });
+export const FORCE = dimension({ M: ONE, L: ONE, T: NEG_TWO });
+export const ENERGY = dimension({ M: ONE, L: TWO, T: NEG_TWO });
+export const POWER = dimension({ M: ONE, L: TWO, T: NEG_THREE });
+export const PRESSURE = dimension({ M: ONE, L: NEG_ONE, T: NEG_TWO });
+/** ISO 80000-13; not an SI base dimension. */
+export const INFORMATION = dimension({ info: ONE });

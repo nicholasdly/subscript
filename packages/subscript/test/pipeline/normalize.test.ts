@@ -17,6 +17,10 @@ describe("character mapping", () => {
     expect(normalize("68\u2109").text).toBe("68\u00b0F");
   });
 
+  test("maps the angstrom sign to \u00c5", () => {
+    expect(normalize("1\u212b").text).toBe("1\u00c5");
+  });
+
   test("folds a.m. and p.m. to am and pm", () => {
     expect(normalize("3 p.m. PST").text).toBe("3 pm PST");
   });

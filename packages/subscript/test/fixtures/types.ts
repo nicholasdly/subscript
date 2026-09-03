@@ -24,6 +24,13 @@ export type Fixture = {
         unitId: string;
         value: number;
         eps?: number;
+        alternates?: readonly {
+          text: string;
+          unitId: string;
+          value: number;
+          reason: string;
+          eps?: number;
+        }[];
       }
     | {
         ok: true;

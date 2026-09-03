@@ -83,16 +83,41 @@ describe("trie readings", () => {
     { locale: "en-GB", alias: "gal", id: "imperial-gallon" },
     { locale: "en-US", alias: "fl oz", id: "us-fluid-ounce" },
     { locale: "en-GB", alias: "fl oz", id: "imperial-fluid-ounce" },
+    { locale: "en-US", alias: "pint", id: "us-pint" },
+    { locale: "en-GB", alias: "pint", id: "imperial-pint" },
+    { locale: "en-US", alias: "cup", id: "us-cup" },
+    { locale: "en-GB", alias: "cup", id: "imperial-cup" },
+    { locale: "en-US", alias: "quart", id: "us-quart" },
+    { locale: "en-GB", alias: "quart", id: "imperial-quart" },
+    { locale: "en-US", alias: "tbsp", id: "us-tablespoon" },
+    { locale: "en-GB", alias: "tbsp", id: "imperial-tablespoon" },
   ])("$alias in $locale is $id", ({ locale, alias, id }) => {
     expect(unitId(locale, alias)).toBe(id);
+  });
+
+  test("pt is Pacific Time, not pint", () => {
+    expect(match("en-US", "pt")).toEqual({ kind: "timezone", zoneId: "america-los-angeles" });
   });
 
   test.each([
     ["k", "kelvin"],
     ["km", "kilometre"],
     ["kilo", "kilogram"],
+    ["g", "gram"],
+    ["gb", "gigabyte"],
+    ["b", "byte"],
+    ["nm", "nanometre"],
+    ["nmi", "nautical-mile"],
+    ["n", "newton"],
+    ["w", "watt"],
+    ["kw", "kilowatt"],
+    ["ly", "light-year"],
   ] as const)("%s is %s", (alias, id) => {
     expect(unitId("en-US", alias)).toBe(id);
+  });
+
+  test("mw is not megawatt or milliwatt", () => {
+    expect(unitId("en-US", "mw")).toBeUndefined();
   });
 
   test.each(["\u0394\u00b0C", "\u0394\u00b0F"])("%s is not typeable", (symbol) => {

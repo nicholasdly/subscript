@@ -191,4 +191,11 @@ export const reject: Fixture[] = [
     input: "3pm PST in metres",
     expect: { ok: false, reason: "not-an-expression" },
   },
+  {
+    name: "mw-not-a-unit",
+    input: "1 mw",
+    expect: { ok: false, reason: "not-an-expression" },
+    notes:
+      "mw is omitted so milliwatt vs megawatt is not a silent 10^9 error. Type kilowatt or watt.",
+  },
 ];

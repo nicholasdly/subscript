@@ -10,8 +10,9 @@ import type { AmbiguousClock, NowFn, Result, Span } from "./types.ts";
 
 export type SubscriptConfig = {
   /**
-   * BCP 47 tag used to pick volume aliases. `en-GB` treats `gallon` as imperial;
-   * every other locale treats it as US. Default `"en-US"`.
+   * BCP 47 tag used to pick volume aliases. `en-GB` treats gallon, pint, cup,
+   * quart, tablespoon, and fluid ounce as imperial; every other locale treats
+   * them as US. Default `"en-US"`.
    */
   locale?: string;
   /**

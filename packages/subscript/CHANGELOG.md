@@ -1,5 +1,12 @@
 # @nicholasdly/subscript
 
+## 1.2.0
+
+### Minor Changes
+
+- 5f2149f: Added kitchen units, and an exponent cap to prevent overflows.
+- ad4de01: Add astronomical and colloquial length, SI derived units, and information units (newton, watt, joule, pascal, byte).
+
 ## 1.1.0
 
 ### Minor Changes

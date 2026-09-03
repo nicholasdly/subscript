@@ -27,8 +27,9 @@ export type AmbiguousClock = "literal24" | "preferDaytime";
  * `"input-length"`: more than 256 characters.
  * `"parse-depth"`: nesting deeper than 32.
  * `"node-count"`: more than 64 AST nodes.
+ * `"exponent-magnitude"`: `|exponent|` for `^` greater than 1000.
  */
-export type LimitName = "input-length" | "parse-depth" | "node-count";
+export type LimitName = "input-length" | "parse-depth" | "node-count" | "exponent-magnitude";
 
 /** A unit as callers see it: catalog `id` (`metre`) and display `symbol` (`m`). */
 export interface Unit {
@@ -70,12 +71,6 @@ export function isZonedTime(value: EvalValue): value is ZonedTime {
   return "kind" in value && value.kind === "zoned-time";
 }
 
-/** One reading of an ambiguous token, used in {@link Failure} `"ambiguous"`. */
-export type Candidate = {
-  readonly token: string;
-  readonly unit: Unit;
-};
-
 /**
  * Another reading that also evaluated, to a different quantity.
  * Today the reason is `"in as converter"` versus `"in as inch"`.
@@ -113,20 +108,13 @@ export type Span = {
  * `"not-an-expression"`: the string is not a query this package accepts.
  * `"dimension-mismatch"`: the operands cannot combine or convert.
  * `"unknown-unit"`: a catalog id or derived name cannot be resolved.
- * `"ambiguous"`: more than one unit matches and no reading can be chosen.
- *   Not produced for `in` (converter versus inch); that uses {@link Alternate}.
  * `"precision-loss"`: float64 would drop an addend or overflow.
- * `"limit-exceeded"`: an input, depth, or node cap fired.
+ * `"limit-exceeded"`: an input, depth, node, or exponent cap fired.
  */
 export type Failure =
   | { readonly kind: "not-an-expression" }
   | { readonly kind: "dimension-mismatch"; readonly from: Unit; readonly to: Unit }
   | { readonly kind: "unknown-unit"; readonly token: string }
-  | {
-      readonly kind: "ambiguous";
-      readonly token: string;
-      readonly candidates: readonly Candidate[];
-    }
   | { readonly kind: "precision-loss" }
   | { readonly kind: "limit-exceeded"; readonly limit: LimitName };
 

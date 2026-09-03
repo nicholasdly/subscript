@@ -1,10 +1,15 @@
-/** Hand-authored unit catalog. Each row cites NIST / SI Brochure / CODATA. */
+/** Hand-authored unit catalog. Each row cites NIST / SI Brochure / IAU / IEC. */
 import * as numeric from "../quantity/numeric.ts";
 import {
   AREA,
+  ENERGY,
+  FORCE,
+  INFORMATION,
   LENGTH,
   MASS,
   NONE,
+  POWER,
+  PRESSURE,
   SPEED,
   TEMPERATURE,
   TIME,
@@ -27,6 +32,21 @@ const NIST_HB44 = {
   url: "https://www.nist.gov/pml/owm/nist-handbook-44-current",
 };
 
+const IAU_2012_B2 = {
+  citation: "IAU 2012 Resolution B2",
+  url: "https://www.iau.org/static/resolutions/IAU2012_English.pdf",
+};
+
+const IAU_2015_B2 = {
+  citation: "IAU 2015 Resolution B2",
+  url: "https://www.iau.org/static/resolutions/IAU2015_English.pdf",
+};
+
+const NIST_BINARY = {
+  citation: "NIST: Prefixes for binary multiples",
+  url: "https://www.nist.gov/pml/owm/metric-si/binary-prefixes",
+};
+
 const YARD_POUND_1959 = {
   citation: "International Yard and Pound Agreement (1959)",
   notes: "inch = 0.0254 m, foot = 0.3048 m, avoirdupois pound = 0.45359237 kg, exactly",
@@ -41,8 +61,24 @@ const POUND_KG = 0.45359237;
 const US_GALLON_M3 = numeric.mul(231, numeric.mul(numeric.mul(INCH_M, INCH_M), INCH_M));
 const LITRE_M3 = 0.001;
 const IMPERIAL_GALLON_M3 = numeric.mul(4.54609, LITRE_M3);
+const US_QUART_M3 = numeric.div(US_GALLON_M3, 4);
+const US_PINT_M3 = numeric.div(US_GALLON_M3, 8);
+const US_CUP_M3 = numeric.div(US_GALLON_M3, 16);
+const US_TABLESPOON_M3 = numeric.div(US_GALLON_M3, 256);
+const IMPERIAL_QUART_M3 = numeric.div(IMPERIAL_GALLON_M3, 4);
+const IMPERIAL_PINT_M3 = numeric.div(IMPERIAL_GALLON_M3, 8);
+const IMPERIAL_CUP_M3 = numeric.div(IMPERIAL_GALLON_M3, 16);
+const IMPERIAL_TABLESPOON_M3 = numeric.div(IMPERIAL_GALLON_M3, 256);
 const DAY_S = 86400;
 const YEAR_S = numeric.mul(365.2425, DAY_S);
+const JULIAN_YEAR_S = numeric.mul(365.25, DAY_S);
+const SPEED_OF_LIGHT_M_S = 299792458;
+const LIGHT_YEAR_M = numeric.mul(SPEED_OF_LIGHT_M_S, JULIAN_YEAR_S);
+const AU_M = 149597870700;
+const PARSEC_M = numeric.div(numeric.mul(648000, AU_M), Math.PI);
+const FATHOM_M = numeric.mul(6, FOOT_M);
+const FURLONG_M = numeric.div(MILE_M, 8);
+const BYTE_BIT = 8;
 const CELSIUS_OFFSET = 273.15;
 const FAHRENHEIT_SCALE = numeric.div(5, 9);
 const FAHRENHEIT_OFFSET = numeric.sub(CELSIUS_OFFSET, numeric.mul(32, FAHRENHEIT_SCALE));
@@ -144,6 +180,72 @@ export const UNITS: readonly UnitDef[] = [
     source: {
       ...SI_BROCHURE,
       notes: "exactly 1852 m (IHO / SI Brochure)",
+    },
+  }),
+  linear({
+    id: "micrometre",
+    symbol: "\u00b5m",
+    dimension: LENGTH,
+    scale: 1e-6,
+    source: { ...SI_BROCHURE, notes: "SI prefix micro-" },
+  }),
+  linear({
+    id: "nanometre",
+    symbol: "nm",
+    dimension: LENGTH,
+    scale: 1e-9,
+    source: { ...SI_BROCHURE, notes: "SI prefix nano-" },
+  }),
+  linear({
+    id: "angstrom",
+    symbol: "\u00c5",
+    dimension: LENGTH,
+    scale: 1e-10,
+    source: { ...SI_BROCHURE, notes: "exactly 10^-10 m; not an SI unit" },
+  }),
+  linear({
+    id: "fathom",
+    symbol: "ftm",
+    dimension: LENGTH,
+    scale: FATHOM_M,
+    source: { ...NIST_SP811, notes: "exactly 6 international feet = 1.8288 m" },
+  }),
+  linear({
+    id: "furlong",
+    symbol: "fur",
+    dimension: LENGTH,
+    scale: FURLONG_M,
+    source: { ...NIST_SP811, notes: "statute mile / 8 = 220 international yards" },
+  }),
+  linear({
+    id: "astronomical-unit",
+    symbol: "au",
+    dimension: LENGTH,
+    scale: AU_M,
+    source: {
+      ...IAU_2012_B2,
+      notes: "exactly 149597870700 m; SI Brochure Table 8",
+    },
+  }),
+  linear({
+    id: "light-year",
+    symbol: "ly",
+    dimension: LENGTH,
+    scale: LIGHT_YEAR_M,
+    source: {
+      ...SI_BROCHURE,
+      notes:
+        "c \u00d7 Julian year = 299792458 m/s \u00d7 365.25 d; not the Gregorian year in this catalog. NIST SP 811 prints 9.46073e15 m (rounded)",
+    },
+  }),
+  linear({
+    id: "parsec",
+    symbol: "pc",
+    dimension: LENGTH,
+    scale: PARSEC_M,
+    source: {
+      ...IAU_2015_B2,
+      notes: "exactly 648000/\u03c0 au; NIST SP 811 prints a rounded factor",
     },
   }),
 
@@ -418,6 +520,62 @@ export const UNITS: readonly UnitDef[] = [
     scale: numeric.div(IMPERIAL_GALLON_M3, 160),
     source: { ...NIST_SP811, notes: "imperial gallon / 160" },
   }),
+  linear({
+    id: "us-quart",
+    symbol: "qt",
+    dimension: VOLUME,
+    scale: US_QUART_M3,
+    source: { ...NIST_HB44, notes: "US gallon / 4" },
+  }),
+  linear({
+    id: "imperial-quart",
+    symbol: "imp qt",
+    dimension: VOLUME,
+    scale: IMPERIAL_QUART_M3,
+    source: { ...NIST_SP811, notes: "imperial gallon / 4" },
+  }),
+  linear({
+    id: "us-pint",
+    symbol: "pint",
+    dimension: VOLUME,
+    scale: US_PINT_M3,
+    source: { ...NIST_HB44, notes: "US gallon / 8" },
+  }),
+  linear({
+    id: "imperial-pint",
+    symbol: "imp pint",
+    dimension: VOLUME,
+    scale: IMPERIAL_PINT_M3,
+    source: { ...NIST_SP811, notes: "imperial gallon / 8" },
+  }),
+  linear({
+    id: "us-cup",
+    symbol: "cup",
+    dimension: VOLUME,
+    scale: US_CUP_M3,
+    source: { ...NIST_HB44, notes: "US gallon / 16 = 8 US fl oz" },
+  }),
+  linear({
+    id: "imperial-cup",
+    symbol: "imp cup",
+    dimension: VOLUME,
+    scale: IMPERIAL_CUP_M3,
+    source: { ...NIST_SP811, notes: "imperial gallon / 16 = 10 imperial fl oz" },
+  }),
+  linear({
+    id: "us-tablespoon",
+    symbol: "tbsp",
+    dimension: VOLUME,
+    scale: US_TABLESPOON_M3,
+    source: { ...NIST_HB44, notes: "US gallon / 256 = 1/2 US fl oz" },
+  }),
+  linear({
+    id: "imperial-tablespoon",
+    symbol: "imp tbsp",
+    dimension: VOLUME,
+    scale: IMPERIAL_TABLESPOON_M3,
+    source: { ...NIST_SP811, notes: "imperial gallon / 256 = 5/8 imperial fl oz" },
+  }),
 
   linear({
     id: "metre-per-second",
@@ -446,5 +604,153 @@ export const UNITS: readonly UnitDef[] = [
     dimension: SPEED,
     scale: numeric.div(NAUTICAL_MILE_M, 3600),
     source: { ...SI_BROCHURE, notes: "nautical mile / hour = 1852 m / 3600 s" },
+  }),
+
+  linear({
+    id: "newton",
+    symbol: "N",
+    dimension: FORCE,
+    scale: 1,
+    source: { ...SI_BROCHURE, notes: "coherent SI derived unit of force; kg\u00b7m/s\u00b2" },
+  }),
+  linear({
+    id: "joule",
+    symbol: "J",
+    dimension: ENERGY,
+    scale: 1,
+    source: { ...SI_BROCHURE, notes: "coherent SI derived unit of energy; N\u00b7m" },
+  }),
+  linear({
+    id: "kilojoule",
+    symbol: "kJ",
+    dimension: ENERGY,
+    scale: 1000,
+    source: { ...SI_BROCHURE, notes: "SI prefix kilo-" },
+  }),
+  linear({
+    id: "watt",
+    symbol: "W",
+    dimension: POWER,
+    scale: 1,
+    source: { ...SI_BROCHURE, notes: "coherent SI derived unit of power; J/s" },
+  }),
+  linear({
+    id: "kilowatt",
+    symbol: "kW",
+    dimension: POWER,
+    scale: 1000,
+    source: { ...SI_BROCHURE, notes: "SI prefix kilo-" },
+  }),
+  linear({
+    id: "pascal",
+    symbol: "Pa",
+    dimension: PRESSURE,
+    scale: 1,
+    source: { ...SI_BROCHURE, notes: "coherent SI derived unit of pressure; N/m\u00b2" },
+  }),
+  linear({
+    id: "hectopascal",
+    symbol: "hPa",
+    dimension: PRESSURE,
+    scale: 100,
+    source: { ...SI_BROCHURE, notes: "SI prefix hecto-; 1 hPa = 100 Pa" },
+  }),
+  linear({
+    id: "kilopascal",
+    symbol: "kPa",
+    dimension: PRESSURE,
+    scale: 1000,
+    source: { ...SI_BROCHURE, notes: "SI prefix kilo-" },
+  }),
+
+  linear({
+    id: "bit",
+    symbol: "bit",
+    dimension: INFORMATION,
+    scale: 1,
+    source: {
+      citation: "IEC 80000-13",
+      url: NIST_BINARY.url,
+      notes: "coherent unit of information; not an SI base unit",
+    },
+  }),
+  linear({
+    id: "byte",
+    symbol: "B",
+    dimension: INFORMATION,
+    scale: BYTE_BIT,
+    source: {
+      citation: "IEC 80000-13",
+      url: NIST_BINARY.url,
+      notes: "exactly 8 bits. B/b is byte, not bel; compact G is display-only; g/G is gram",
+    },
+  }),
+  linear({
+    id: "kilobyte",
+    symbol: "kB",
+    dimension: INFORMATION,
+    scale: numeric.mul(BYTE_BIT, 1000),
+    source: {
+      ...NIST_BINARY,
+      notes: "SI decimal; 1000 bytes, not 1024. Kibibyte is KiB",
+    },
+  }),
+  linear({
+    id: "megabyte",
+    symbol: "MB",
+    dimension: INFORMATION,
+    scale: numeric.mul(BYTE_BIT, 1e6),
+    source: {
+      ...NIST_BINARY,
+      notes: "SI decimal; 10^6 bytes. Mebibyte is MiB. mb is megabyte, not millibar",
+    },
+  }),
+  linear({
+    id: "gigabyte",
+    symbol: "GB",
+    dimension: INFORMATION,
+    scale: numeric.mul(BYTE_BIT, 1e9),
+    source: {
+      ...NIST_BINARY,
+      notes: "SI decimal; 10^9 bytes. Gibibyte is GiB. G alone is gram",
+    },
+  }),
+  linear({
+    id: "terabyte",
+    symbol: "TB",
+    dimension: INFORMATION,
+    scale: numeric.mul(BYTE_BIT, 1e12),
+    source: {
+      ...NIST_BINARY,
+      notes: "SI decimal; 10^12 bytes. Tebibyte is TiB",
+    },
+  }),
+  linear({
+    id: "kibibyte",
+    symbol: "KiB",
+    dimension: INFORMATION,
+    scale: numeric.mul(BYTE_BIT, 1024),
+    source: { ...NIST_BINARY, notes: "IEC binary prefix kibi-; 2^10 bytes" },
+  }),
+  linear({
+    id: "mebibyte",
+    symbol: "MiB",
+    dimension: INFORMATION,
+    scale: numeric.mul(BYTE_BIT, 2 ** 20),
+    source: { ...NIST_BINARY, notes: "IEC binary prefix mebi-; 2^20 bytes" },
+  }),
+  linear({
+    id: "gibibyte",
+    symbol: "GiB",
+    dimension: INFORMATION,
+    scale: numeric.mul(BYTE_BIT, 2 ** 30),
+    source: { ...NIST_BINARY, notes: "IEC binary prefix gibi-; 2^30 bytes" },
+  }),
+  linear({
+    id: "tebibyte",
+    symbol: "TiB",
+    dimension: INFORMATION,
+    scale: numeric.mul(BYTE_BIT, 2 ** 40),
+    source: { ...NIST_BINARY, notes: "IEC binary prefix tebi-; 2^40 bytes" },
   }),
 ];

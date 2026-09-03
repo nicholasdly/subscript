@@ -1,7 +1,12 @@
 import { describe, expect, test } from "vitest";
 
 import { createSubscript } from "../src/index.ts";
-import { INPUT_LENGTH_LIMIT, NODE_COUNT_LIMIT, PARSE_DEPTH_LIMIT } from "../src/limits.ts";
+import {
+  EXPONENT_ABS_LIMIT,
+  INPUT_LENGTH_LIMIT,
+  NODE_COUNT_LIMIT,
+  PARSE_DEPTH_LIMIT,
+} from "../src/limits.ts";
 
 const subscript = createSubscript();
 
@@ -35,5 +40,16 @@ describe("limit-exceeded", () => {
       ok: false,
       reason: { kind: "limit-exceeded", limit: "node-count" },
     });
+  });
+
+  test("an exponent of 1001 is exponent-magnitude", () => {
+    expect(subscript.evaluate(`2^${EXPONENT_ABS_LIMIT + 1}`)).toMatchObject({
+      ok: false,
+      reason: { kind: "limit-exceeded", limit: "exponent-magnitude" },
+    });
+  });
+
+  test("an exponent of 1000 is allowed", () => {
+    expect(subscript.evaluate(`2^${EXPONENT_ABS_LIMIT}`)).toMatchObject({ ok: true });
   });
 });

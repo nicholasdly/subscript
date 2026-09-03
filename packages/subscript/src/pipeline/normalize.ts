@@ -22,6 +22,7 @@ const REWRITES: Record<string, string> = {
   "\u27f6": "\u2192", // long rightwards arrow; the lexer knows one arrow
   "\u2103": "\u00b0C", // degree celsius
   "\u2109": "\u00b0F", // degree fahrenheit
+  "\u212b": "\u00c5", // angstrom sign → Å
 };
 
 const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });

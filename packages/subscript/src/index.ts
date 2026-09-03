@@ -20,7 +20,6 @@ export { isZonedTime } from "./types.ts";
 export type {
   Alternate,
   AmbiguousClock,
-  Candidate,
   EvalValue,
   Failure,
   Instant,

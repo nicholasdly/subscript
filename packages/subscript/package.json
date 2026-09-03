@@ -1,6 +1,6 @@
 {
   "name": "@nicholasdly/subscript",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Natural-language evaluation of arithmetic, unit conversion, and time zones.",
   "keywords": [
     "arithmetic",
@@ -11,7 +11,7 @@
     "timezone",
     "units"
   ],
-  "homepage": "https://github.com/nicholasdly/subscript/tree/main/packages/subscript#readme",
+  "homepage": "https://subscript.nicholasly.com/",
   "bugs": {
     "url": "https://github.com/nicholasdly/subscript/issues"
   },
