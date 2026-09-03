@@ -1,5 +1,15 @@
 # @nicholasdly/subscript
 
+## 1.3.0
+
+### Minor Changes
+
+- 1990008: Dropped the unstable `@nicholasdly/subscript/internals` export. Use `evaluate`, `createSubscript`, and `spans`.
+
+### Patch Changes
+
+- bcd17de: Removed redundant mathematical operator functions
+
 ## 1.2.0
 
 ### Minor Changes

@@ -140,14 +140,10 @@ function isUnitless(ast: Ast): boolean {
  * Highlighting does not evaluate, so the rules differ on purpose. Keep them
  * next to each other so `in` vs inch cannot drift in only one path.
  */
-function evalWinner(
-  evaluated: readonly EvaluatedReading[],
-): EvaluatedReading | undefined {
+function evalWinner(evaluated: readonly EvaluatedReading[]): EvaluatedReading | undefined {
   const succeeded = evaluated.filter((reading) => reading.result.ok);
   return (
-    succeeded.find((reading) => readsInAsConverter(reading.tokens)) ??
-    succeeded[0] ??
-    evaluated[0]
+    succeeded.find((reading) => readsInAsConverter(reading.tokens)) ?? succeeded[0] ?? evaluated[0]
   );
 }
 

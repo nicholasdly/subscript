@@ -33,7 +33,8 @@ export const accept: Fixture[] = [
       value: 180.34,
       eps: 1e-9,
     },
-    notes: "Juxtaposed quantities add. The converter reading of in does not parse, so no alternates.",
+    notes:
+      "Juxtaposed quantities add. The converter reading of in does not parse, so no alternates.",
   },
   {
     name: "mixed-m-cm",
