@@ -3,12 +3,13 @@ import { describe, expect, test } from "vitest";
 import {
   dimension,
   dimensionsEqual,
+  divDimensions,
   mulDimensions,
   rational,
   rationalsEqual,
   scaleDimension,
 } from "../../src/quantity/dimension.ts";
-import { AREA, LENGTH } from "../../src/units/kinds.ts";
+import { AREA, ENERGY, FORCE, LENGTH, POWER, PRESSURE, TIME } from "../../src/units/kinds.ts";
 
 describe("rationals", () => {
   test("rational reduces by gcd and normalizes sign", () => {
@@ -29,6 +30,12 @@ describe("dimensions", () => {
     const m2 = mulDimensions(LENGTH, LENGTH);
     expect(dimensionsEqual(m2, AREA)).toBe(true);
     expect(dimensionsEqual(scaleDimension(m2, rational(1, 2)), LENGTH)).toBe(true);
+  });
+
+  test("newton, joule, watt, and pascal are the named SI products", () => {
+    expect(dimensionsEqual(mulDimensions(FORCE, LENGTH), ENERGY)).toBe(true);
+    expect(dimensionsEqual(divDimensions(ENERGY, TIME), POWER)).toBe(true);
+    expect(dimensionsEqual(divDimensions(FORCE, AREA), PRESSURE)).toBe(true);
   });
 
   test("dimension() defaults to all-zero exponents", () => {

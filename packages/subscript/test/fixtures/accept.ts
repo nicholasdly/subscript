@@ -434,4 +434,90 @@ export const accept: Fixture[] = [
       zoned: { timeZone: "utc+0000", label: "UTC", hour: 7, minute: 0 },
     },
   },
+  {
+    name: "light-year-to-au",
+    input: "1 light year to au",
+    expect: {
+      ok: true,
+      text: "63241.1 au",
+      unitId: "astronomical-unit",
+      value: 9460730472580800 / 149597870700,
+      eps: 1e-9,
+    },
+    notes: "Multi-word alias. Light year is c \u00d7 Julian year, not the catalog Gregorian year.",
+  },
+  {
+    name: "fathom-to-ft",
+    input: "1 fathom to ft",
+    expect: { ok: true, text: "6 ft", unitId: "foot", value: 6 },
+  },
+  {
+    name: "furlong-to-yd",
+    input: "1 furlong to yd",
+    expect: { ok: true, text: "220 yd", unitId: "yard", value: 220 },
+  },
+  {
+    name: "nm-is-nanometre",
+    input: "1 nm to m",
+    expect: {
+      ok: true,
+      text: "1e-9 m",
+      unitId: "metre",
+      value: 1e-9,
+    },
+    notes: "nm is nanometre; nmi is nautical mile.",
+  },
+  {
+    name: "micron-to-mm",
+    input: "500 microns to mm",
+    expect: { ok: true, text: "0.5 mm", unitId: "millimetre", value: 0.5 },
+  },
+  {
+    name: "newton-metre-to-joule",
+    input: "10 N * 2 m in J",
+    expect: { ok: true, text: "20 J", unitId: "joule", value: 20 },
+  },
+  {
+    name: "joule-per-second-to-watt",
+    input: "1 J / 1 s in W",
+    expect: { ok: true, text: "1 W", unitId: "watt", value: 1 },
+  },
+  {
+    name: "newton-per-m2-to-pascal",
+    input: "1 N / 1 m^2 in Pa",
+    expect: { ok: true, text: "1 Pa", unitId: "pascal", value: 1 },
+  },
+  {
+    name: "kilowatt-to-watt",
+    input: "1 kW to W",
+    expect: { ok: true, text: "1000 W", unitId: "watt", value: 1000 },
+  },
+  {
+    name: "eight-bit-to-byte",
+    input: "8 bit to byte",
+    expect: { ok: true, text: "1 B", unitId: "byte", value: 1 },
+  },
+  {
+    name: "gb-to-mb-decimal",
+    input: "1 GB to MB",
+    expect: { ok: true, text: "1000 MB", unitId: "megabyte", value: 1000 },
+    notes: "GB is 10^9 bytes, not 2^30. Compact G is display-only; typed G is gram.",
+  },
+  {
+    name: "gib-to-mib-binary",
+    input: "1 GiB to MiB",
+    expect: { ok: true, text: "1024 MiB", unitId: "mebibyte", value: 1024 },
+  },
+  {
+    name: "glued-g-is-gram",
+    input: "1G",
+    expect: { ok: true, text: "1 g", unitId: "gram", value: 1 },
+    notes: "G folds to g (gram). Compact 1G is display-only. Type GB for gigabyte.",
+  },
+  {
+    name: "glued-b-is-byte",
+    input: "1B",
+    expect: { ok: true, text: "1 B", unitId: "byte", value: 1 },
+    notes: "B is byte, not bel. Logarithmic units are deferred.",
+  },
 ];

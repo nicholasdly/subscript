@@ -3,9 +3,14 @@ import { describe, expect, test } from "vitest";
 import { dimensionsEqual } from "../../src/quantity/dimension.ts";
 import {
   AREA,
+  ENERGY,
+  FORCE,
+  INFORMATION,
   LENGTH,
   MASS,
   NONE,
+  POWER,
+  PRESSURE,
   SPEED,
   TEMPERATURE,
   TIME,
@@ -27,6 +32,14 @@ const BY_DIMENSION: Record<string, typeof LENGTH> = {
   yard: LENGTH,
   mile: LENGTH,
   "nautical-mile": LENGTH,
+  micrometre: LENGTH,
+  nanometre: LENGTH,
+  angstrom: LENGTH,
+  fathom: LENGTH,
+  furlong: LENGTH,
+  "astronomical-unit": LENGTH,
+  "light-year": LENGTH,
+  parsec: LENGTH,
   kilogram: MASS,
   gram: MASS,
   milligram: MASS,
@@ -72,6 +85,24 @@ const BY_DIMENSION: Record<string, typeof LENGTH> = {
   "kilometre-per-hour": SPEED,
   "mile-per-hour": SPEED,
   knot: SPEED,
+  newton: FORCE,
+  joule: ENERGY,
+  kilojoule: ENERGY,
+  watt: POWER,
+  kilowatt: POWER,
+  pascal: PRESSURE,
+  hectopascal: PRESSURE,
+  kilopascal: PRESSURE,
+  bit: INFORMATION,
+  byte: INFORMATION,
+  kilobyte: INFORMATION,
+  megabyte: INFORMATION,
+  gigabyte: INFORMATION,
+  terabyte: INFORMATION,
+  kibibyte: INFORMATION,
+  mebibyte: INFORMATION,
+  gibibyte: INFORMATION,
+  tebibyte: INFORMATION,
 };
 
 describe("catalog shape", () => {
@@ -141,5 +172,30 @@ describe("legal definitions", () => {
     expect(byId["imperial-pint"]!.scale).toBe(impGallon / 8);
     expect(byId["imperial-cup"]!.scale).toBe(impGallon / 16);
     expect(byId["imperial-tablespoon"]!.scale).toBe(impGallon / 256);
+  });
+
+  test("light year is c times a Julian year, not the catalog year", () => {
+    const byId = Object.fromEntries(UNITS.map((unit) => [unit.id, unit]));
+    const lightYear = byId["light-year"]!.scale;
+    expect(lightYear).toBe(299792458 * 365.25 * 86400);
+    expect(lightYear).not.toBe(byId["year"]!.scale * 299792458);
+  });
+
+  test("astronomical unit and parsec match the IAU definitions", () => {
+    const byId = Object.fromEntries(UNITS.map((unit) => [unit.id, unit]));
+    const au = byId["astronomical-unit"]!.scale;
+    expect(au).toBe(149597870700);
+    expect(byId["parsec"]!.scale).toBe((648000 * au) / Math.PI);
+  });
+
+  test("byte is 8 bits; SI and IEC prefixes stay distinct", () => {
+    const byId = Object.fromEntries(UNITS.map((unit) => [unit.id, unit]));
+    const bit = byId["bit"]!.scale;
+    const byte = byId["byte"]!.scale;
+    expect(byte).toBe(8 * bit);
+    expect(byId["kilobyte"]!.scale).toBe(1000 * byte);
+    expect(byId["kibibyte"]!.scale).toBe(1024 * byte);
+    expect(byId["gigabyte"]!.scale).toBe(1e9 * byte);
+    expect(byId["gibibyte"]!.scale).toBe(2 ** 30 * byte);
   });
 });

@@ -53,18 +53,19 @@ original plan are met unless noted.
 
 ### M1 — `Quantity`, dimensions, affine units ✓
 
-- Rational-exponent dimension vector over seven SI base dimensions
+- Rational-exponent dimension vector over seven SI base dimensions plus
+  information (ISO 80000-13)
 - Absolute vs difference temperature as distinct affine kinds
 - Typed `dimension-mismatch` failures; no throws for input-shaped errors
 - Mixed-unit rules: assimilation, larger unit wins, named products only
-- Hand-authored unit table (length, mass, time, temperature, area, volume, speed)
-  with a cited source per entry
+- Hand-authored unit table (length, mass, time, temperature, area, volume, speed,
+  force, energy, power, pressure, information) with a cited source per entry
 
 ### M2 — Lexer, rewrite, parser ✓
 
 - Leftmost-longest trie; `in` as converter vs inch via alternate readings and ranking
 - Multi-word aliases live in the trie (`fluid ounce`, `nautical mile`,
-  `pacific time`, …). Rewrite inserts implicit `+` for `5 ft 11 in`
+  `light year`, `pacific time`, …). Rewrite inserts implicit `+` for `5 ft 11 in`
 - Pratt parser; strict full-input consumption
 - Input limits: 256 chars, parse depth 32, 64 AST nodes, `|exponent|` 1000; no
   `eval` / `new Function`
@@ -115,28 +116,24 @@ continuous, deferred, or incomplete.
 The parser is done; perceived quality is mostly the alias table (§14). Gaps worth
 filling as corpus cases are added:
 
-- **Astronomical / colloquial length** — `light year` (named in §4.3; not in the
-  catalog yet)
-- **SI derived units** — newton, watt, joule, pascal, byte (and `G`/`B` ambiguity
-  with compact)
 - **Everyday mass** — stone, hundredweight
 - **Timezone aliases** — grow the closed list as users report misses; airports
   explicitly deferred
 
+Astronomical / colloquial length (`light year`, au, parsec, fathom, …) and SI
+derived units (newton, watt, joule, pascal, byte) are in the catalog. `G`/`B`
+policy is in the package README: typed `G` is gram, compact `G` is display-only,
+`B` is byte, `GB` is 10⁹ bytes, `GiB` is 2³⁰ bytes.
+
 Track progress by corpus pass rate, not by feature count.
 
-### 2.2 API and engine gaps
-
-- **Bundle measurement** — never done (§13); `evaluate` pulls the full catalog;
-  no per-domain entry points. `tsdown` emits `index` and `internals` only.
-
-### 2.3 Application and repo
+### 2.2 Application and repo
 
 | Item                    | Notes                                                                           |
 | ----------------------- | ------------------------------------------------------------------------------- |
 | `apps/web` product demo | 3.3: units-and-arithmetic calculator with `spans` highlighting, not a JSON dump |
 
-### 2.4 Explicitly deferred (not oversights)
+### 2.3 Explicitly deferred (not oversights)
 
 Documented decisions — easy to add later, not on the critical path:
 
@@ -150,7 +147,7 @@ Documented decisions — easy to add later, not on the critical path:
 - Variables and multi-line documents; bytecode / VM
 - Close read of `solve-engine` source
 
-### 2.5 Research questions — closed vs open
+### 2.4 Research questions — closed vs open
 
 **Closed by shipping:**
 
@@ -230,7 +227,7 @@ deferred; they are not later work.
 When application work begins, `apps/web` should demo a units-and-arithmetic
 calculator first. A demo that does one domain convincingly is a better artifact
 than one that does four badly. **This is the main remaining application
-milestone** (see 2.3).
+milestone** (see 2.2).
 
 ### 3.4 Hand-authored unit data, cited per entry; `subscript` stays MIT
 
@@ -267,8 +264,7 @@ reason: a `new Subscript()` that owns the unit table and the timezone aliases
 cannot be tree-shaken, and the data tables are the bulk of the bundle (§13). Free
 functions importing only what they need let a bundler drop the domains a
 consumer never touches. A class also implies mutable instance state, and there is
-none — the engine is a pure function of `(input, config)`. Per-domain entry
-points are still a future optimization (2.2).
+none — the engine is a pure function of `(input, config)`.
 
 ### 4.2 Layer 2 — a configured instance for the hot path
 
@@ -364,10 +360,11 @@ shorthand (`km m`).
 
 ### 5.2 Units
 
-Dimension vector of **rational** exponents over seven SI base dimensions (§7.1).
-Absolute and difference temperatures are **distinct types** (§7.2). Mixed-unit
-arithmetic follows Soulver's published rules (§6). Calendar-unit lengths (year,
-month) are named, documented constants in the catalog.
+Dimension vector of **rational** exponents over seven SI base dimensions plus
+information (§7.1, ISO 80000-13). Absolute and difference temperatures are
+**distinct types** (§7.2). Mixed-unit arithmetic follows Soulver's published
+rules (§6). Calendar-unit lengths (year, month) are named, documented constants
+in the catalog. A light year uses the Julian year, not that catalog year.
 
 ### 5.3 Lexing
 
@@ -379,8 +376,8 @@ which volume aliases are in the trie, not a ranking tiebreaker.
 ### 5.4 The rewrite stage
 
 Implicit operator insertion (`5 ft 11 in`). Phrase fusion is not a rewrite step —
-multi-word aliases are keys in the trie. Not every phrase from the research is in
-the catalog yet — see 2.1.
+multi-word aliases are keys in the trie (`light year`, `fluid ounce`,
+`nautical mile`, `pacific time`).
 
 ### 5.5 Currency — out of scope
 
@@ -407,7 +404,7 @@ place: negative corpus, typed failures, `alternates`, precision refusal.
 ### 6.2 Data licensing is a real legal exposure
 
 Hand-authored, cited data only. No GPL vendoring. Before touching GeoNames, IATA,
-or UDUNITS, answer the license questions in 2.5.
+or UDUNITS, answer the license questions in 2.4.
 
 ### 6.3 Every ambiguity has no correct answer
 
@@ -432,14 +429,14 @@ place (`2^1001` is `limit-exceeded`).
 
 ### 6.7 Bundle weight
 
-Architecture supports tree-shaking (free functions, side-effect-free).
-**Remaining:** measure bundle, consider per-domain entry points (2.2).
+Architecture supports tree-shaking (free functions, side-effect-free). The data
+tables are the bulk of the bundle.
 
 ### 6.8 `solve-engine` already exists
 
 The reasons to build are control over the alias table, trigger behavior, and
 ambiguity policy. The parser was never the moat. A close read of `solve-engine`
-is deferred (2.4).
+is deferred (2.3).
 
 ### 6.9 Performance is a constraint, not a goal
 

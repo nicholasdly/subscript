@@ -63,7 +63,9 @@ Configured evaluator. Same contract as `evaluate`, plus `spans`.
 | `now`            | `Date.now`    | Injected clock for `now in Tokyo` and dating `3pm PST`                                                                 |
 | `ambiguousClock` | `"literal24"` | `3:00` is 03:00. `"preferDaytime"` treats 1:00–6:59 without am/pm as PM                                                |
 
-Compact suffixes are display-only. `2.5k` as input is 2.5 kelvin. Type `pint` for a pint; `pt` is Pacific Time.
+Compact suffixes are display-only. `2.5k` as input is 2.5 kelvin. `1G` as input is 1 gram. Type `GB` for gigabyte (10⁹ bytes) and `GiB` for gibibyte (2³⁰ bytes). `B` is byte, not bel. Type `pint` for a pint; `pt` is Pacific Time.
+
+Matching is ASCII case-folded, so `MW` and `mw` cannot be told apart: neither milliwatt nor megawatt is in the catalog. Type `watt` or `kilowatt`.
 
 ```ts
 createSubscript({ compact: false }).evaluate("100000 + 200000");

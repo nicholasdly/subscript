@@ -130,6 +130,32 @@ describe("length, mass, volume", () => {
   test("year-in-days", () => {
     expect(convert(q(1, "year"), "day")).toBeQuantity("day", 365.2425);
   });
+
+  test("n-times-m-is-joule", () => {
+    expect(mul(q(10, "newton"), q(2, "metre"))).toBeQuantity("joule", 20);
+  });
+
+  test("j-div-s-is-watt", () => {
+    expect(div(q(1, "joule"), q(1, "second"))).toBeQuantity("watt", 1);
+  });
+
+  test("n-div-m2-is-pascal", () => {
+    expect(div(q(1, "newton"), q(1, "metre-squared"))).toBeQuantity("pascal", 1);
+  });
+
+  test("kw-times-s-is-kilojoule", () => {
+    expect(mul(q(1, "kilowatt"), q(1, "second"))).toBeQuantity("kilojoule", 1);
+  });
+
+  test("byte-times-metre-is-unknown", () => {
+    const result = mul(q(1, "byte"), q(1, "metre"));
+    expect(result).toFailWith("unknown-unit");
+    expect(result).toMatchObject({ reason: { token: "B\u00b7m" } });
+  });
+
+  test("eight-bit-to-byte", () => {
+    expect(convert(q(8, "bit"), "byte")).toBeQuantity("byte", 1);
+  });
 });
 
 describe("sqrt", () => {

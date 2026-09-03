@@ -8,7 +8,7 @@ import { InstallButton } from "@/components/install-button";
 
 export default function Page() {
   return (
-    <main className="mx-auto flex max-w-lg flex-col gap-20 p-5 py-32">
+    <main className="mx-auto flex max-w-xl flex-col gap-20 p-5 py-32">
       <div>
         <h1 className="mb-1 text-xl font-medium tracking-tight">
           <Link
@@ -49,10 +49,52 @@ export default function Page() {
       </div>
 
       <div>
+        <h2 className="mb-1 text-lg font-medium">Configuration</h2>
+        <p className="text-muted-foreground mb-4">
+          When the default <Code>evaluate</Code> function isn't enough, you can use{" "}
+          <Code>createSubscript</Code> to configure a custom parser.
+        </p>
+        <CodeBlock language="typescript">
+          {[
+            'import { createSubscript } from "@nicholasdly/subscript";',
+            "",
+            "// ...",
+            "",
+            "const subscript = createSubscript({",
+            "  compact: false,",
+            "});",
+            "",
+            'subscript.evaluate("100000 + 200000");',
+          ].join("\n")}
+        </CodeBlock>
+      </div>
+
+      <div>
+        <h2 className="mb-1 text-lg font-medium">Spans</h2>
+        <p className="text-muted-foreground mb-4">
+          A <Code>Span</Code> is a range over the original query string. They represent which pieces
+          of the input are numbers, units, converters, and so on, without exposing the parser's
+          internal tokens.
+        </p>
+        <CodeBlock language="typescript">
+          {[
+            'createSubscript().spans("20 c to f");',
+            "// [",
+            '//   { start: 0, end: 2, kind: "number" },',
+            '//   { start: 3, end: 4, kind: "unit" },',
+            '//   { start: 5, end: 7, kind: "converter" },',
+            '//   { start: 8, end: 9, kind: "unit" },',
+            "// ]",
+          ].join("\n")}
+        </CodeBlock>
+      </div>
+
+      <div>
         <h2 className="mb-1 text-lg font-medium">Results</h2>
         <p className="text-muted-foreground mb-4">
-          Queries are parsed into <Code>Result</Code> objects. Be sure to check <Code>ok</Code>{" "}
-          before reading the object's contents.
+          The result of a query is represented as a <Code>Result</Code> object: either a successful
+          answer or a typed failure. Nothing in the API throws for bad input — you check{" "}
+          <Code>ok</Code> and then read <Code>value</Code> or <Code>reason</Code> .
         </p>
         <CodeBlock language="typescript">
           {[

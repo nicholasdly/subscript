@@ -103,8 +103,21 @@ describe("trie readings", () => {
     ["k", "kelvin"],
     ["km", "kilometre"],
     ["kilo", "kilogram"],
+    ["g", "gram"],
+    ["gb", "gigabyte"],
+    ["b", "byte"],
+    ["nm", "nanometre"],
+    ["nmi", "nautical-mile"],
+    ["n", "newton"],
+    ["w", "watt"],
+    ["kw", "kilowatt"],
+    ["ly", "light-year"],
   ] as const)("%s is %s", (alias, id) => {
     expect(unitId("en-US", alias)).toBe(id);
+  });
+
+  test("mw is not megawatt or milliwatt", () => {
+    expect(unitId("en-US", "mw")).toBeUndefined();
   });
 
   test.each(["\u0394\u00b0C", "\u0394\u00b0F"])("%s is not typeable", (symbol) => {
