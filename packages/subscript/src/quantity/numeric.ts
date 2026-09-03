@@ -1,6 +1,5 @@
 /**
- * float64 ops in one place so a later numeric backend is a contained change.
- * Checked variants refuse precision-loss instead of returning a lie.
+ * Checked arithmetic: refuse precision-loss instead of returning a lie.
  */
 export const RELATIVE_EPS = 1e-12;
 
@@ -10,33 +9,8 @@ export function isFiniteNumber(value: number): boolean {
   return Number.isFinite(value);
 }
 
-export function add(a: number, b: number): number {
-  return a + b;
-}
-
-export function sub(a: number, b: number): number {
-  return a - b;
-}
-
-export function mul(a: number, b: number): number {
-  return a * b;
-}
-
-export function div(a: number, b: number): number {
-  return a / b;
-}
-
-export function sqrt(value: number): number {
-  return Math.sqrt(value);
-}
-
-export function pow(base: number, exp: number): number {
-  return base ** exp;
-}
-
 /**
  * Operand +/−: refuse a lost addend, snap cancellation residue to 0.
- * Scale math keeps using the primitive `add` / `sub`.
  */
 function checked(a: number, b: number, result: number): NumericOutcome {
   if (!isFiniteNumber(result)) {

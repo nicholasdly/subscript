@@ -55,11 +55,11 @@ function fromOutcomeSI(outcome: numeric.NumericOutcome, dest: UnitDef): Result {
 }
 
 function toSI(value: number, def: UnitDef): number {
-  return numeric.add(numeric.mul(value, def.scale), def.offset);
+  return value * def.scale + def.offset;
 }
 
 function fromSI(si: number, def: UnitDef): number {
-  return numeric.div(numeric.sub(si, def.offset), def.scale);
+  return (si - def.offset) / def.scale;
 }
 
 /** Runs `compute` once the operand has a known unit and a usable value. */
@@ -216,15 +216,15 @@ export function mul(a: Quantity, b: Quantity): Result {
       return mismatch(aDef, bDef);
     }
     if (isDimensionless(bDef.dimension)) {
-      return ok(numeric.mul(a.value, b.value), aDef);
+      return ok(a.value * b.value, aDef);
     }
     if (isDimensionless(aDef.dimension)) {
-      return ok(numeric.mul(a.value, b.value), bDef);
+      return ok(a.value * b.value, bDef);
     }
     return derived(
-      numeric.mul(toSI(a.value, aDef), toSI(b.value, bDef)),
+      toSI(a.value, aDef) * toSI(b.value, bDef),
       mulDimensions(aDef.dimension, bDef.dimension),
-      numeric.mul(aDef.scale, bDef.scale),
+      aDef.scale * bDef.scale,
       `${symbolOf(aDef)}\u00b7${symbolOf(bDef)}`,
     );
   });
@@ -240,12 +240,12 @@ export function div(a: Quantity, b: Quantity): Result {
       return mismatch(aDef, bDef);
     }
     if (isDimensionless(bDef.dimension)) {
-      return ok(numeric.div(a.value, b.value), aDef);
+      return ok(a.value / b.value, aDef);
     }
     return derived(
-      numeric.div(toSI(a.value, aDef), toSI(b.value, bDef)),
+      toSI(a.value, aDef) / toSI(b.value, bDef),
       divDimensions(aDef.dimension, bDef.dimension),
-      numeric.div(aDef.scale, bDef.scale),
+      aDef.scale / bDef.scale,
       `${symbolOf(aDef)}/${symbolOf(bDef)}`,
     );
   });
@@ -261,9 +261,9 @@ export function sqrt(qty: Quantity): Result {
       return mismatch(def, def);
     }
     return derived(
-      numeric.sqrt(toSI(qty.value, def)),
+      Math.sqrt(toSI(qty.value, def)),
       scaleDimension(def.dimension, HALF),
-      numeric.sqrt(def.scale),
+      Math.sqrt(def.scale),
       `\u221a${symbolOf(def)}`,
     );
   });

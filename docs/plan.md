@@ -97,7 +97,7 @@ network. `100 usd in eur` is `not-an-expression`. See 3.3 and 5.5.
 | Decision                                | Shipped behavior                                                          |
 | --------------------------------------- | ------------------------------------------------------------------------- |
 | 3.1 Strict consumption                  | Leftover tokens → `not-an-expression`                                     |
-| 3.2 float64 + display predictability    | `quantity/numeric.ts` seam; format-time rounding; precision refusal       |
+| 3.2 float64 + display predictability    | format-time rounding; checked add/sub; operators elsewhere                |
 | 3.3 Units first, time last, no currency | Matches plan; currency reversed and dropped                               |
 | 3.4 Hand-authored MIT data              | Cited entries in `units/table.ts`; no GPL vendoring                       |
 | 4.1–4.3 Three API layers                | `evaluate` / `createSubscript` / `.spans` + `internals`                   |
@@ -157,6 +157,7 @@ Documented decisions — easy to add later, not on the critical path:
 - Formatting without `Intl` `style: "unit"`; own symbol table via `Unit.symbol`
 - Runtime tzdata over shipping `vvo/tzdb`; DST fixtures use 2026 transitions in
   the corpus
+- Stay on float64; no decimal or bigint numeric backend (currency out of scope)
 
 **Still worth answering if the relevant deferred item moves:**
 
@@ -170,7 +171,8 @@ Documented decisions — easy to add later, not on the critical path:
 ## 3. Decisions taken
 
 These four were resolved before implementation because each one changes the shape
-of everything below. All four shipped as written.
+of everything below. They shipped as written, except the numeric-backend seam in
+3.2, which was later dropped.
 
 ### 3.1 Strict input consumption, with tolerance as a possible later mode
 
@@ -206,10 +208,15 @@ legibility directly:
   `sqrt(2) - 2^0.5` shows `0`, and **refuse** calculations that cannot retain
   accuracy (`1e100 + 1 - 1e100`) rather than silently returning `0`.
 
-`Quantity.value` stays `number`, but every arithmetic operation goes through a
-single module (`quantity/numeric.ts`) so swapping the numeric backend later is a
-contained change rather than a rewrite. Revisit if the corpus produces a case
-where float64 is genuinely visible.
+`Quantity.value` stays `number`. Operand `+`/`−` goes through `addChecked` /
+`subChecked` in `quantity/numeric.ts`: refuse a lost addend, snap cancellation
+residue to 0. Scale math, multiply, divide, power, and roots use operators
+directly.
+
+The original write-up routed every arithmetic call through that module so a
+later decimal backend would be a contained change. That seam is gone. Currency
+is out of scope, and magnitudes float64 cannot represent are `precision-loss`,
+not a reason to change the type.
 
 ### 3.3 Units and arithmetic first; time zones last. Currency is out of scope.
 

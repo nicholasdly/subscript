@@ -1,5 +1,4 @@
 /** Hand-authored unit catalog. Each row cites NIST / SI Brochure / IAU / IEC. */
-import * as numeric from "../quantity/numeric.ts";
 import {
   AREA,
   ENERGY,
@@ -55,33 +54,33 @@ const YARD_POUND_1959 = {
 const INCH_M = 0.0254;
 const FOOT_M = 0.3048;
 const YARD_M = 0.9144;
-const MILE_M = numeric.mul(5280, FOOT_M);
+const MILE_M = 5280 * FOOT_M;
 const NAUTICAL_MILE_M = 1852;
 const POUND_KG = 0.45359237;
-const US_GALLON_M3 = numeric.mul(231, numeric.mul(numeric.mul(INCH_M, INCH_M), INCH_M));
+const US_GALLON_M3 = 231 * INCH_M * INCH_M * INCH_M;
 const LITRE_M3 = 0.001;
-const IMPERIAL_GALLON_M3 = numeric.mul(4.54609, LITRE_M3);
-const US_QUART_M3 = numeric.div(US_GALLON_M3, 4);
-const US_PINT_M3 = numeric.div(US_GALLON_M3, 8);
-const US_CUP_M3 = numeric.div(US_GALLON_M3, 16);
-const US_TABLESPOON_M3 = numeric.div(US_GALLON_M3, 256);
-const IMPERIAL_QUART_M3 = numeric.div(IMPERIAL_GALLON_M3, 4);
-const IMPERIAL_PINT_M3 = numeric.div(IMPERIAL_GALLON_M3, 8);
-const IMPERIAL_CUP_M3 = numeric.div(IMPERIAL_GALLON_M3, 16);
-const IMPERIAL_TABLESPOON_M3 = numeric.div(IMPERIAL_GALLON_M3, 256);
+const IMPERIAL_GALLON_M3 = 4.54609 * LITRE_M3;
+const US_QUART_M3 = US_GALLON_M3 / 4;
+const US_PINT_M3 = US_GALLON_M3 / 8;
+const US_CUP_M3 = US_GALLON_M3 / 16;
+const US_TABLESPOON_M3 = US_GALLON_M3 / 256;
+const IMPERIAL_QUART_M3 = IMPERIAL_GALLON_M3 / 4;
+const IMPERIAL_PINT_M3 = IMPERIAL_GALLON_M3 / 8;
+const IMPERIAL_CUP_M3 = IMPERIAL_GALLON_M3 / 16;
+const IMPERIAL_TABLESPOON_M3 = IMPERIAL_GALLON_M3 / 256;
 const DAY_S = 86400;
-const YEAR_S = numeric.mul(365.2425, DAY_S);
-const JULIAN_YEAR_S = numeric.mul(365.25, DAY_S);
+const YEAR_S = 365.2425 * DAY_S;
+const JULIAN_YEAR_S = 365.25 * DAY_S;
 const SPEED_OF_LIGHT_M_S = 299792458;
-const LIGHT_YEAR_M = numeric.mul(SPEED_OF_LIGHT_M_S, JULIAN_YEAR_S);
+const LIGHT_YEAR_M = SPEED_OF_LIGHT_M_S * JULIAN_YEAR_S;
 const AU_M = 149597870700;
-const PARSEC_M = numeric.div(numeric.mul(648000, AU_M), Math.PI);
-const FATHOM_M = numeric.mul(6, FOOT_M);
-const FURLONG_M = numeric.div(MILE_M, 8);
+const PARSEC_M = (648000 * AU_M) / Math.PI;
+const FATHOM_M = 6 * FOOT_M;
+const FURLONG_M = MILE_M / 8;
 const BYTE_BIT = 8;
 const CELSIUS_OFFSET = 273.15;
-const FAHRENHEIT_SCALE = numeric.div(5, 9);
-const FAHRENHEIT_OFFSET = numeric.sub(CELSIUS_OFFSET, numeric.mul(32, FAHRENHEIT_SCALE));
+const FAHRENHEIT_SCALE = 5 / 9;
+const FAHRENHEIT_OFFSET = CELSIUS_OFFSET - 32 * FAHRENHEIT_SCALE;
 
 function linear(def: Omit<UnitDef, "offset" | "affine">): UnitDef {
   return {
@@ -281,7 +280,7 @@ export const UNITS: readonly UnitDef[] = [
     id: "ounce",
     symbol: "oz",
     dimension: MASS,
-    scale: numeric.div(POUND_KG, 16),
+    scale: POUND_KG / 16,
     source: {
       ...YARD_POUND_1959,
       notes: "avoirdupois ounce = pound / 16; not a fluid ounce",
@@ -334,14 +333,14 @@ export const UNITS: readonly UnitDef[] = [
     id: "week",
     symbol: "wk",
     dimension: TIME,
-    scale: numeric.mul(7, DAY_S),
+    scale: 7 * DAY_S,
     source: { ...SI_BROCHURE, notes: "exactly 7 days" },
   }),
   linear({
     id: "month",
     symbol: "mo",
     dimension: TIME,
-    scale: numeric.div(YEAR_S, 12),
+    scale: YEAR_S / 12,
     source: {
       ...SI_BROCHURE,
       notes: "mean Gregorian year / 12; a documented convention, not a calendar month",
@@ -440,14 +439,14 @@ export const UNITS: readonly UnitDef[] = [
     id: "foot-squared",
     symbol: "ft²",
     dimension: AREA,
-    scale: numeric.mul(FOOT_M, FOOT_M),
+    scale: FOOT_M * FOOT_M,
     source: { ...YARD_POUND_1959, notes: "international foot squared" },
   }),
   linear({
     id: "inch-squared",
     symbol: "in²",
     dimension: AREA,
-    scale: numeric.mul(INCH_M, INCH_M),
+    scale: INCH_M * INCH_M,
     source: { ...YARD_POUND_1959, notes: "international inch squared" },
   }),
   linear({
@@ -461,7 +460,7 @@ export const UNITS: readonly UnitDef[] = [
     id: "acre",
     symbol: "ac",
     dimension: AREA,
-    scale: numeric.mul(4840, numeric.mul(YARD_M, YARD_M)),
+    scale: 4840 * YARD_M * YARD_M,
     source: {
       ...NIST_SP811,
       notes: "international acre = 4840 yd² with the 1959 yard; SP 811 prints a rounded factor",
@@ -510,14 +509,14 @@ export const UNITS: readonly UnitDef[] = [
     id: "us-fluid-ounce",
     symbol: "fl oz",
     dimension: VOLUME,
-    scale: numeric.div(US_GALLON_M3, 128),
+    scale: US_GALLON_M3 / 128,
     source: { ...NIST_HB44, notes: "US gallon / 128" },
   }),
   linear({
     id: "imperial-fluid-ounce",
     symbol: "imp fl oz",
     dimension: VOLUME,
-    scale: numeric.div(IMPERIAL_GALLON_M3, 160),
+    scale: IMPERIAL_GALLON_M3 / 160,
     source: { ...NIST_SP811, notes: "imperial gallon / 160" },
   }),
   linear({
@@ -588,21 +587,21 @@ export const UNITS: readonly UnitDef[] = [
     id: "kilometre-per-hour",
     symbol: "km/h",
     dimension: SPEED,
-    scale: numeric.div(1000, 3600),
+    scale: 1000 / 3600,
     source: { ...SI_BROCHURE, notes: "1000 m / 3600 s" },
   }),
   linear({
     id: "mile-per-hour",
     symbol: "mph",
     dimension: SPEED,
-    scale: numeric.div(MILE_M, 3600),
+    scale: MILE_M / 3600,
     source: { ...NIST_SP811, notes: "international mile / hour" },
   }),
   linear({
     id: "knot",
     symbol: "kn",
     dimension: SPEED,
-    scale: numeric.div(NAUTICAL_MILE_M, 3600),
+    scale: NAUTICAL_MILE_M / 3600,
     source: { ...SI_BROCHURE, notes: "nautical mile / hour = 1852 m / 3600 s" },
   }),
 
@@ -689,7 +688,7 @@ export const UNITS: readonly UnitDef[] = [
     id: "kilobyte",
     symbol: "kB",
     dimension: INFORMATION,
-    scale: numeric.mul(BYTE_BIT, 1000),
+    scale: BYTE_BIT * 1000,
     source: {
       ...NIST_BINARY,
       notes: "SI decimal; 1000 bytes, not 1024. Kibibyte is KiB",
@@ -699,7 +698,7 @@ export const UNITS: readonly UnitDef[] = [
     id: "megabyte",
     symbol: "MB",
     dimension: INFORMATION,
-    scale: numeric.mul(BYTE_BIT, 1e6),
+    scale: BYTE_BIT * 1e6,
     source: {
       ...NIST_BINARY,
       notes: "SI decimal; 10^6 bytes. Mebibyte is MiB. mb is megabyte, not millibar",
@@ -709,7 +708,7 @@ export const UNITS: readonly UnitDef[] = [
     id: "gigabyte",
     symbol: "GB",
     dimension: INFORMATION,
-    scale: numeric.mul(BYTE_BIT, 1e9),
+    scale: BYTE_BIT * 1e9,
     source: {
       ...NIST_BINARY,
       notes: "SI decimal; 10^9 bytes. Gibibyte is GiB. G alone is gram",
@@ -719,7 +718,7 @@ export const UNITS: readonly UnitDef[] = [
     id: "terabyte",
     symbol: "TB",
     dimension: INFORMATION,
-    scale: numeric.mul(BYTE_BIT, 1e12),
+    scale: BYTE_BIT * 1e12,
     source: {
       ...NIST_BINARY,
       notes: "SI decimal; 10^12 bytes. Tebibyte is TiB",
@@ -729,28 +728,28 @@ export const UNITS: readonly UnitDef[] = [
     id: "kibibyte",
     symbol: "KiB",
     dimension: INFORMATION,
-    scale: numeric.mul(BYTE_BIT, 1024),
+    scale: BYTE_BIT * 1024,
     source: { ...NIST_BINARY, notes: "IEC binary prefix kibi-; 2^10 bytes" },
   }),
   linear({
     id: "mebibyte",
     symbol: "MiB",
     dimension: INFORMATION,
-    scale: numeric.mul(BYTE_BIT, 2 ** 20),
+    scale: BYTE_BIT * 2 ** 20,
     source: { ...NIST_BINARY, notes: "IEC binary prefix mebi-; 2^20 bytes" },
   }),
   linear({
     id: "gibibyte",
     symbol: "GiB",
     dimension: INFORMATION,
-    scale: numeric.mul(BYTE_BIT, 2 ** 30),
+    scale: BYTE_BIT * 2 ** 30,
     source: { ...NIST_BINARY, notes: "IEC binary prefix gibi-; 2^30 bytes" },
   }),
   linear({
     id: "tebibyte",
     symbol: "TiB",
     dimension: INFORMATION,
-    scale: numeric.mul(BYTE_BIT, 2 ** 40),
+    scale: BYTE_BIT * 2 ** 40,
     source: { ...NIST_BINARY, notes: "IEC binary prefix tebi-; 2^40 bytes" },
   }),
 ];

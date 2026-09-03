@@ -1,27 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import {
-  add,
-  addChecked,
-  div,
-  isFiniteNumber,
-  mul,
-  sqrt,
-  sub,
-  subChecked,
-} from "../../src/quantity/numeric.ts";
-
-describe("float64 wrappers", () => {
-  test.each([
-    { name: "add", actual: add(2, 3), expected: 5 },
-    { name: "sub", actual: sub(5, 3), expected: 2 },
-    { name: "mul", actual: mul(4, 2.5), expected: 10 },
-    { name: "div", actual: div(9, 3), expected: 3 },
-    { name: "sqrt", actual: sqrt(9), expected: 3 },
-  ])("$name wraps float64 arithmetic", ({ actual, expected }) => {
-    expect(actual).toBe(expected);
-  });
-});
+import { addChecked, isFiniteNumber, subChecked } from "../../src/quantity/numeric.ts";
 
 describe("isFiniteNumber", () => {
   test.each([

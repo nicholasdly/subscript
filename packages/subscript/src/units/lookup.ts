@@ -1,6 +1,5 @@
 /** Find a unit by id, or name a derived result (`m×m` → `m²`). */
 import { dimensionsEqual, type Dimension } from "../quantity/dimension.ts";
-import * as numeric from "../quantity/numeric.ts";
 import type { Unit } from "../types.ts";
 import type { UnitDef } from "./kinds.ts";
 import { UNITS } from "./table.ts";
@@ -10,7 +9,7 @@ const byId = new Map<string, UnitDef>(UNITS.map((unit) => [unit.id, unit]));
 const SCALE_EPS = 1e-12;
 
 function scalesEqual(a: number, b: number): boolean {
-  return Math.abs(numeric.sub(a, b)) <= SCALE_EPS * Math.max(1, Math.abs(a), Math.abs(b));
+  return Math.abs(a - b) <= SCALE_EPS * Math.max(1, Math.abs(a), Math.abs(b));
 }
 
 export function lookupUnit(id: string): UnitDef | undefined {

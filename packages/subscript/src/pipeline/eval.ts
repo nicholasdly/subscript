@@ -1,6 +1,5 @@
 import { EXPONENT_ABS_LIMIT } from "../limits.ts";
 import { add, convert, div, mul, quantity, sqrt, sub } from "../quantity/index.ts";
-import * as numeric from "../quantity/numeric.ts";
 import {
   isValidEpoch,
   lookupZone,
@@ -49,7 +48,7 @@ function power(base: Quantity, exponent: Quantity): Result {
   if (Math.abs(exponent.value) > EXPONENT_ABS_LIMIT) {
     return { ok: false, reason: { kind: "limit-exceeded", limit: "exponent-magnitude" } };
   }
-  return quantity(numeric.pow(base.value, exponent.value));
+  return quantity(base.value ** exponent.value);
 }
 
 function applyOp(op: BinaryOp, left: Quantity, right: Quantity): Result {
