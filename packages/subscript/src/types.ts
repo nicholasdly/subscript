@@ -119,7 +119,24 @@ export type Failure =
   | { readonly kind: "limit-exceeded"; readonly limit: LimitName };
 
 /**
- * Outcome of `evaluate` and of quantity ops. Check `ok` before reading `value`.
+ * Unformatted success or failure. Quantity arithmetic and AST eval return this.
+ * The conductor, and the public quantity helpers, attach `text` to make a
+ * {@link Result} or {@link QuantityResult}.
+ */
+export type Outcome<T> =
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly reason: Failure };
+
+/**
+ * Outcome of a quantity helper (`add`, `convert`, …). Success is always a
+ * {@link Quantity}; callers do not need {@link isZonedTime}.
+ */
+export type QuantityResult =
+  | { readonly ok: true; readonly value: Quantity; readonly text: string }
+  | { readonly ok: false; readonly reason: Failure };
+
+/**
+ * Outcome of `evaluate`. Check `ok` before reading `value`.
  *
  * `text` is the display string (six significant figures, compact `k`/`M`/`G`
  * on dimensionless magnitudes). `alternates` is present when another reading

@@ -57,6 +57,11 @@ export const reject: Fixture[] = [
     expect: { ok: false, reason: "not-an-expression" },
   },
   {
+    name: "unitless-to",
+    input: "20 to f",
+    expect: { ok: false, reason: "not-an-expression" },
+  },
+  {
     name: "inverted",
     input: "km in m",
     expect: { ok: false, reason: "not-an-expression" },

@@ -18,7 +18,7 @@ export type TrieValue =
   | { kind: "unit"; unitId: string }
   | { kind: "converter"; converter: ConverterWord }
   | { kind: "function"; name: "sqrt" }
-  | { kind: "ambiguous"; converter: ConverterWord; unitId: string }
+  | { kind: "ambiguous" }
   | { kind: "timezone"; zoneId: string }
   | { kind: "now" };
 
@@ -73,7 +73,7 @@ function merge(existing: TrieValue | undefined, added: TrieValue): TrieValue {
       added.kind === "unit" &&
       added.unitId === "inch");
   if (inchAndIn) {
-    return { kind: "ambiguous", converter: "in", unitId: "inch" };
+    return { kind: "ambiguous" };
   }
   return existing;
 }

@@ -70,7 +70,7 @@ describe("trie readings", () => {
     const hit = matchTrie(trieFor("en-US"), "in", 0);
     expect(hit).toMatchObject({
       length: 2,
-      value: { kind: "ambiguous", converter: "in", unitId: "inch" },
+      value: { kind: "ambiguous" },
     });
   });
 

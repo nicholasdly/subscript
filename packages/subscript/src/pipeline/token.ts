@@ -39,13 +39,11 @@ export type Token =
   | (Located & { readonly kind: "unknown" });
 
 /**
- * A span with two readings. Only `in` (converter or inch) is ambiguous.
+ * A span with two readings: converter `in`, or the unit inch.
  * `enumerateReadings` splits it, so the parser never sees one.
  */
 export type AmbiguousToken = Located & {
   readonly kind: "ambiguous";
-  readonly converter: ConverterWord;
-  readonly unitId: string;
 };
 
 export type LexToken = Token | AmbiguousToken;

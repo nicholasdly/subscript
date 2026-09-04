@@ -15,8 +15,10 @@ import {
   isZonedTime,
   type Alternate,
   type AmbiguousClock,
+  type EvalValue,
   type LimitName,
   type NowFn,
+  type Outcome,
   type Quantity,
   type Result,
   type Span,
@@ -27,7 +29,7 @@ import { lex } from "./lex.ts";
 import { normalize } from "./normalize.ts";
 import { parse } from "./parse.ts";
 import { enumerateReadings, readsInAsConverter } from "./rank.ts";
-import type { Ast, Token } from "./token.ts";
+import type { Token } from "./token.ts";
 import type { TrieNode } from "./trie.ts";
 
 function notAnExpression(): Result {
@@ -56,6 +58,10 @@ function spanKind(token: Token): SpanKind {
       return "unknown";
     case "operator":
       return token.op === "(" || token.op === ")" ? "punctuation" : "operator";
+    default: {
+      const _never: never = token;
+      return _never;
+    }
   }
 }
 
@@ -71,13 +77,8 @@ function spansFor(tokens: readonly Token[]): Span[] {
   return spans;
 }
 
-type EvaluatedReading = {
-  readonly result: Result;
-  readonly tokens: readonly Token[];
-};
-
-type ParsedReading = {
-  readonly ast: Ast;
+type Reading = {
+  readonly result: Outcome<EvalValue>;
   readonly tokens: readonly Token[];
 };
 
@@ -87,19 +88,21 @@ function sameQuantity(a: Quantity, b: Quantity): boolean {
 
 /** Other readings that also evaluated, to a different answer than the winner's. */
 function alternatesFor(
-  winner: EvaluatedReading,
-  succeeded: readonly EvaluatedReading[],
+  winner: Reading,
+  succeeded: readonly Reading[],
   format: Formatter,
 ): Alternate[] {
+  if (!winner.result.ok || isZonedTime(winner.result.value)) {
+    return [];
+  }
+  const winnerValue = winner.result.value;
   const alternates: Alternate[] = [];
   for (const reading of succeeded) {
     if (
       reading === winner ||
       !reading.result.ok ||
-      !winner.result.ok ||
       isZonedTime(reading.result.value) ||
-      isZonedTime(winner.result.value) ||
-      sameQuantity(reading.result.value, winner.result.value)
+      sameQuantity(reading.result.value, winnerValue)
     ) {
       continue;
     }
@@ -113,49 +116,17 @@ function alternatesFor(
 }
 
 function withFormat(
-  result: Extract<Result, { ok: true }>,
+  outcome: Extract<Outcome<EvalValue>, { ok: true }>,
   format: Formatter,
 ): Extract<Result, { ok: true }> {
-  return { ...result, text: format(result.value) };
+  return { ok: true, value: outcome.value, text: format(outcome.value) };
 }
 
-function isUnitless(ast: Ast): boolean {
-  switch (ast.kind) {
-    case "number":
-      return true;
-    case "unary":
-    case "sqrt":
-      return isUnitless(ast.inner);
-    case "binary":
-      return isUnitless(ast.left) && isUnitless(ast.right);
-    default:
-      return false;
-  }
-}
-
-/**
- * Eval winner: a converter reading that evaluated, else the first success.
- * Spans winner: a converter reading that parsed and is not unitless-`in`.
- *
- * Highlighting does not evaluate, so the rules differ on purpose. Keep them
- * next to each other so `in` vs inch cannot drift in only one path.
- */
-function evalWinner(evaluated: readonly EvaluatedReading[]): EvaluatedReading | undefined {
-  const succeeded = evaluated.filter((reading) => reading.result.ok);
-  return (
-    succeeded.find((reading) => readsInAsConverter(reading.tokens)) ?? succeeded[0] ?? evaluated[0]
-  );
-}
-
-function spansWinner(parsed: readonly ParsedReading[]): ParsedReading | undefined {
-  const viableConverter = parsed.find(
-    (reading) =>
-      readsInAsConverter(reading.tokens) &&
-      !(reading.ast.kind === "convert" && isUnitless(reading.ast.expr)),
-  );
-  return (
-    viableConverter ?? parsed.find((reading) => !readsInAsConverter(reading.tokens)) ?? parsed[0]
-  );
+/** Prefer a reading that spends `in` as a converter; otherwise the first candidate. */
+function preferConverter<T extends { tokens: readonly Token[] }>(
+  candidates: readonly T[],
+): T | undefined {
+  return candidates.find((candidate) => readsInAsConverter(candidate.tokens)) ?? candidates[0];
 }
 
 /**
@@ -181,7 +152,7 @@ export function runPipeline(
   }
 
   const ctx = { instant: now(), engine };
-  const evaluated: EvaluatedReading[] = [];
+  const evaluated: Reading[] = [];
   for (const tokens of readings) {
     const parsed = parse(tokens);
     if (parsed.ok) {
@@ -191,7 +162,8 @@ export function runPipeline(
     }
   }
 
-  const winner = evalWinner(evaluated);
+  const succeeded = evaluated.filter((reading) => reading.result.ok);
+  const winner = preferConverter(succeeded) ?? evaluated[0];
   if (winner === undefined) {
     return notAnExpression();
   }
@@ -199,7 +171,6 @@ export function runPipeline(
     return winner.result;
   }
 
-  const succeeded = evaluated.filter((reading) => reading.result.ok);
   const result = withFormat(winner.result, format);
   const alternates = alternatesFor(winner, succeeded, format);
   return alternates.length > 0 ? { ...result, alternates } : result;
@@ -220,14 +191,14 @@ export function spansForInput(
     return [];
   }
 
-  const parsed: ParsedReading[] = [];
+  const parsed: { tokens: readonly Token[] }[] = [];
   for (const tokens of readings) {
     const result = parse(tokens);
     if (result.ok) {
-      parsed.push({ ast: result.ast, tokens });
+      parsed.push({ tokens });
     }
   }
 
-  const winner = spansWinner(parsed);
+  const winner = preferConverter(parsed);
   return winner === undefined ? [] : spansFor(winner.tokens);
 }

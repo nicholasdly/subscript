@@ -1,5 +1,5 @@
 import { EXPONENT_ABS_LIMIT } from "../limits.ts";
-import { compute } from "../quantity/index.ts";
+import * as qty from "../quantity/ops.ts";
 import {
   isValidEpoch,
   lookupZone,
@@ -8,37 +8,39 @@ import {
   zoneWall,
   type TzEngine,
 } from "../time/index.ts";
-import { isZonedTime, type Failure, type Instant, type Quantity, type Result } from "../types.ts";
+import {
+  isZonedTime,
+  type EvalValue,
+  type Instant,
+  type Outcome,
+  type Quantity,
+  type ZonedTime,
+} from "../types.ts";
 import type { Ast, BinaryOp } from "./token.ts";
 
 /**
  * Stage 6: walk the AST into a Quantity or ZonedTime.
  *
- * Arithmetic delegates to `quantity/`; time queries delegate to `time/`.
+ * Arithmetic delegates to `quantity/ops`; time queries delegate to `time/`.
  * The formatted `text` is filled in later by the conductor.
  */
 
-/** Clock and zone engine for one evaluation. `text` is filled in later. */
+/** Clock and zone engine for one evaluation. */
 export type EvalCtx = {
   readonly instant: Instant;
   readonly engine: TzEngine;
 };
 
-/** Like {@link Result}, but a success is always a Quantity (never a ZonedTime). */
-type QuantityResult =
-  | { readonly ok: true; readonly value: Quantity; readonly text: string }
-  | { readonly ok: false; readonly reason: Failure };
-
-function notAnExpression(): Extract<Result, { ok: false }> {
+function notAnExpression(): Outcome<never> {
   return { ok: false, reason: { kind: "not-an-expression" } };
 }
 
-function okZoned(value: ReturnType<typeof retarget>): Result {
-  return { ok: true, value, text: "" };
+function okZoned(value: ZonedTime): Outcome<EvalValue> {
+  return { ok: true, value };
 }
 
 /** `^` is dimensionless-only: a dimensioned base is not an exponentiation we can name. */
-function power(base: Quantity, exponent: Quantity): Result {
+function power(base: Quantity, exponent: Quantity): Outcome<Quantity> {
   if (base.unit.id !== "1" || exponent.unit.id !== "1") {
     return {
       ok: false,
@@ -48,26 +50,30 @@ function power(base: Quantity, exponent: Quantity): Result {
   if (Math.abs(exponent.value) > EXPONENT_ABS_LIMIT) {
     return { ok: false, reason: { kind: "limit-exceeded", limit: "exponent-magnitude" } };
   }
-  return compute.quantity(base.value ** exponent.value);
+  return qty.quantity(base.value ** exponent.value);
 }
 
-function applyOp(op: BinaryOp, left: Quantity, right: Quantity): Result {
+function applyOp(op: BinaryOp, left: Quantity, right: Quantity): Outcome<Quantity> {
   switch (op) {
     case "+":
-      return compute.add(left, right);
+      return qty.add(left, right);
     case "-":
-      return compute.sub(left, right);
+      return qty.sub(left, right);
     case "*":
-      return compute.mul(left, right);
+      return qty.mul(left, right);
     case "/":
-      return compute.div(left, right);
+      return qty.div(left, right);
     case "^":
       return power(left, right);
+    default: {
+      const _never: never = op;
+      return _never;
+    }
   }
 }
 
 /** Evaluate a child that must be a Quantity. Time values cannot mix with arithmetic. */
-function evalQuantity(ast: Ast, ctx: EvalCtx): QuantityResult {
+function evalQuantity(ast: Ast, ctx: EvalCtx): Outcome<Quantity> {
   const result = evaluateAst(ast, ctx);
   if (!result.ok) {
     return result;
@@ -75,11 +81,11 @@ function evalQuantity(ast: Ast, ctx: EvalCtx): QuantityResult {
   if (isZonedTime(result.value)) {
     return notAnExpression();
   }
-  return { ok: true, value: result.value, text: result.text };
+  return { ok: true, value: result.value };
 }
 
 /** A clock in a zone, dated from the injected `now`. */
-function evaluateZoned(ast: Extract<Ast, { kind: "zoned" }>, ctx: EvalCtx): Result {
+function evaluateZoned(ast: Extract<Ast, { kind: "zoned" }>, ctx: EvalCtx): Outcome<EvalValue> {
   if (ast.inner.kind !== "clock") {
     return notAnExpression();
   }
@@ -103,7 +109,7 @@ function evaluateZoned(ast: Extract<Ast, { kind: "zoned" }>, ctx: EvalCtx): Resu
 }
 
 /** The injected clock, displayed in the target zone. */
-function nowInZone(ctx: EvalCtx, timeZone: string, label: string): Result {
+function nowInZone(ctx: EvalCtx, timeZone: string, label: string): Outcome<EvalValue> {
   const epoch = ctx.instant.epochMilliseconds;
   if (!isValidEpoch(epoch)) {
     return notAnExpression();
@@ -120,7 +126,10 @@ function nowInZone(ctx: EvalCtx, timeZone: string, label: string): Result {
   });
 }
 
-function evaluateConvertZone(ast: Extract<Ast, { kind: "convert-zone" }>, ctx: EvalCtx): Result {
+function evaluateConvertZone(
+  ast: Extract<Ast, { kind: "convert-zone" }>,
+  ctx: EvalCtx,
+): Outcome<EvalValue> {
   const toZone = lookupZone(ast.toZoneId);
   if (toZone === undefined) {
     return notAnExpression();
@@ -138,31 +147,31 @@ function evaluateConvertZone(ast: Extract<Ast, { kind: "convert-zone" }>, ctx: E
   return okZoned(retarget(inner.value, toZone));
 }
 
-function evaluateUnary(ast: Extract<Ast, { kind: "unary" }>, ctx: EvalCtx): Result {
+function evaluateUnary(ast: Extract<Ast, { kind: "unary" }>, ctx: EvalCtx): Outcome<EvalValue> {
   const inner = evalQuantity(ast.inner, ctx);
   if (!inner.ok) {
     return inner;
   }
-  return compute.quantity(-inner.value.value, inner.value.unit.id);
+  return qty.quantity(-inner.value.value, inner.value.unit.id);
 }
 
-function evaluateSqrt(ast: Extract<Ast, { kind: "sqrt" }>, ctx: EvalCtx): Result {
+function evaluateSqrt(ast: Extract<Ast, { kind: "sqrt" }>, ctx: EvalCtx): Outcome<EvalValue> {
   const inner = evalQuantity(ast.inner, ctx);
   if (!inner.ok) {
     return inner;
   }
-  return compute.sqrt(inner.value);
+  return qty.sqrt(inner.value);
 }
 
-function evaluateConvert(ast: Extract<Ast, { kind: "convert" }>, ctx: EvalCtx): Result {
+function evaluateConvert(ast: Extract<Ast, { kind: "convert" }>, ctx: EvalCtx): Outcome<EvalValue> {
   const inner = evalQuantity(ast.expr, ctx);
   if (!inner.ok) {
     return inner;
   }
-  return compute.convert(inner.value, ast.toId);
+  return qty.convert(inner.value, ast.toId);
 }
 
-function evaluateBinary(ast: Extract<Ast, { kind: "binary" }>, ctx: EvalCtx): Result {
+function evaluateBinary(ast: Extract<Ast, { kind: "binary" }>, ctx: EvalCtx): Outcome<EvalValue> {
   const left = evalQuantity(ast.left, ctx);
   if (!left.ok) {
     return left;
@@ -174,12 +183,12 @@ function evaluateBinary(ast: Extract<Ast, { kind: "binary" }>, ctx: EvalCtx): Re
   return applyOp(ast.op, left.value, right.value);
 }
 
-export function evaluateAst(ast: Ast, ctx: EvalCtx): Result {
+export function evaluateAst(ast: Ast, ctx: EvalCtx): Outcome<EvalValue> {
   switch (ast.kind) {
     case "number":
-      return compute.quantity(ast.value);
+      return qty.quantity(ast.value);
     case "quantity":
-      return compute.quantity(ast.value, ast.unitId);
+      return qty.quantity(ast.value, ast.unitId);
     case "clock":
     case "now":
       return notAnExpression();
@@ -195,5 +204,9 @@ export function evaluateAst(ast: Ast, ctx: EvalCtx): Result {
       return evaluateConvert(ast, ctx);
     case "binary":
       return evaluateBinary(ast, ctx);
+    default: {
+      const _never: never = ast;
+      return _never;
+    }
   }
 }

@@ -1,5 +1,11 @@
 # @nicholasdly/subscript
 
+## 1.4.0
+
+### Minor Changes
+
+- Quantity helpers now return `QuantityResult` (always a quantity on success). Unitless conversions such as `20 to f` fail as `not-an-expression` instead of `dimension-mismatch`.
+
 ## 1.3.0
 
 ### Minor Changes

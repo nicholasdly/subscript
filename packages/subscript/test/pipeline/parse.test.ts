@@ -50,6 +50,10 @@ describe("quantity", () => {
   test("quantity parse is unchanged for 20 c to f", () => {
     expect(ast("20 c to f")).toMatchObject({ ok: true, ast: { kind: "convert" } });
   });
+
+  test("a trailing convert of a unitless expression is not a parse", () => {
+    expect(ast("20 to f").ok).toBe(false);
+  });
 });
 
 describe("adjacent quantities", () => {

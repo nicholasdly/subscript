@@ -59,6 +59,11 @@ describe("spans", () => {
       spans: [],
     },
     {
+      name: "a unitless convert is not an expression and yields no spans",
+      input: "20 to f",
+      spans: [],
+    },
+    {
       name: "a scientific number is one number span",
       input: "1e100",
       spans: [{ start: 0, end: 5, kind: "number" }],

@@ -4,19 +4,18 @@ import {
   add,
   convert,
   div,
-  isZonedTime,
   mul,
   quantity,
   sqrt,
   sub,
   type Quantity,
-  type Result,
+  type QuantityResult,
 } from "../../src/index.ts";
 
 function q(value: number, unitId?: string): Quantity {
   const result = quantity(value, unitId);
   expect(result.ok).toBe(true);
-  if (!result.ok || isZonedTime(result.value)) {
+  if (!result.ok) {
     throw new Error(`quantity(${value}, ${unitId}) failed`);
   }
   return result.value;
@@ -196,7 +195,7 @@ describe("precision", () => {
   });
 
   test("subtracting two close irrationals snaps to zero", () => {
-    const result: Result = sub(q(Math.sqrt(2)), q(2 ** 0.5));
+    const result: QuantityResult = sub(q(Math.sqrt(2)), q(2 ** 0.5));
     expect(result).toBeQuantity("1", 0);
     expect(result).toMatchObject({ text: "0" });
   });

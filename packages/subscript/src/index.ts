@@ -23,6 +23,7 @@ export type {
   LimitName,
   NowFn,
   Quantity,
+  QuantityResult,
   Result,
   Span,
   SpanKind,

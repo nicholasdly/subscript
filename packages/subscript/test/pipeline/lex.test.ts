@@ -19,7 +19,7 @@ describe("units", () => {
     expect(tokens("1 m in ft")).toMatchObject([
       { kind: "number" },
       { kind: "unit", unitId: "metre" },
-      { kind: "ambiguous", converter: "in", unitId: "inch" },
+      { kind: "ambiguous" },
       { kind: "unit", unitId: "foot" },
     ]);
   });

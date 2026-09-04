@@ -324,12 +324,7 @@ export function lex(
           tokens.push({ ...located, kind: "converter", converter: value.converter });
           break;
         case "ambiguous":
-          tokens.push({
-            ...located,
-            kind: "ambiguous",
-            converter: value.converter,
-            unitId: value.unitId,
-          });
+          tokens.push({ ...located, kind: "ambiguous" });
           break;
         case "function":
           tokens.push(
@@ -344,6 +339,10 @@ export function lex(
         case "now":
           tokens.push({ ...located, kind: "now" });
           break;
+        default: {
+          const _never: never = value;
+          return _never;
+        }
       }
       i = end;
       continue;

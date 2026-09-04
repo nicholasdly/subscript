@@ -47,8 +47,39 @@ function isUnitBearing(ast: Ast): boolean {
       return isUnitBearing(ast.inner);
     case "binary":
       return isUnitBearing(ast.left) || isUnitBearing(ast.right);
-    default:
+    case "number":
+    case "now":
+    case "clock":
+    case "zoned":
+    case "convert-zone":
       return false;
+    default: {
+      const _never: never = ast;
+      return _never;
+    }
+  }
+}
+
+function isUnitless(ast: Ast): boolean {
+  switch (ast.kind) {
+    case "number":
+      return true;
+    case "unary":
+    case "sqrt":
+      return isUnitless(ast.inner);
+    case "binary":
+      return isUnitless(ast.left) && isUnitless(ast.right);
+    case "quantity":
+    case "convert":
+    case "now":
+    case "clock":
+    case "zoned":
+    case "convert-zone":
+      return false;
+    default: {
+      const _never: never = ast;
+      return _never;
+    }
   }
 }
 
@@ -73,6 +104,9 @@ class Parser {
       return this.failure();
     }
     if (convertTo !== undefined) {
+      if (isUnitless(ast)) {
+        return failedParse();
+      }
       ast = this.node({ kind: "convert", expr: ast, toId: convertTo });
       if (ast === undefined) {
         return this.failure();
@@ -249,59 +283,39 @@ function clockExpr(token: Extract<Token, { kind: "clock" }>): Extract<Ast, { kin
 }
 
 /** `3pm PST` */
-function zonedClock(clock: Token | undefined, zone: Token | undefined): ParseResult | undefined {
-  if (
-    clock === undefined ||
-    zone === undefined ||
-    clock.kind !== "clock" ||
-    zone.kind !== "timezone"
-  ) {
-    return undefined;
+function zonedClock(clock: Token, zone: Token | undefined): ParseResult {
+  if (clock.kind !== "clock" || zone?.kind !== "timezone") {
+    return failedParse();
   }
-  return okParse({
-    kind: "zoned",
-    inner: clockExpr(clock),
-    zoneId: zone.zoneId,
-  });
+  return okParse({ kind: "zoned", inner: clockExpr(clock), zoneId: zone.zoneId });
 }
 
 /** `now in Tokyo` */
 function convertedNow(
-  now: Token | undefined,
+  now: Token,
   converter: Token | undefined,
   zone: Token | undefined,
-): ParseResult | undefined {
-  if (
-    now === undefined ||
-    converter === undefined ||
-    zone === undefined ||
-    now.kind !== "now" ||
-    converter.kind !== "converter" ||
-    zone.kind !== "timezone"
-  ) {
-    return undefined;
+): ParseResult {
+  if (now.kind !== "now" || converter?.kind !== "converter" || zone?.kind !== "timezone") {
+    return failedParse();
   }
   return okParse({ kind: "convert-zone", expr: { kind: "now" }, toZoneId: zone.zoneId });
 }
 
 /** `3pm PST in Tokyo` */
 function convertedClock(
-  clock: Token | undefined,
+  clock: Token,
   from: Token | undefined,
   converter: Token | undefined,
   to: Token | undefined,
-): ParseResult | undefined {
+): ParseResult {
   if (
-    clock === undefined ||
-    from === undefined ||
-    converter === undefined ||
-    to === undefined ||
     clock.kind !== "clock" ||
-    from.kind !== "timezone" ||
-    converter.kind !== "converter" ||
-    to.kind !== "timezone"
+    from?.kind !== "timezone" ||
+    converter?.kind !== "converter" ||
+    to?.kind !== "timezone"
   ) {
-    return undefined;
+    return failedParse();
   }
   return okParse({
     kind: "convert-zone",
@@ -310,22 +324,26 @@ function convertedClock(
   });
 }
 
+/**
+ * Time queries are a closed grammar of exact token tuples. Anything else that
+ * starts with a clock or `now` fails; Pratt never sees it.
+ */
 function parseTimeQuery(tokens: readonly Token[]): ParseResult | undefined {
   const first = tokens[0];
   if (first === undefined || (first.kind !== "clock" && first.kind !== "now")) {
     return undefined;
   }
 
-  if (tokens.length === 2) {
-    return zonedClock(tokens[0], tokens[1]) ?? failedParse();
+  switch (tokens.length) {
+    case 2:
+      return zonedClock(first, tokens[1]);
+    case 3:
+      return convertedNow(first, tokens[1], tokens[2]);
+    case 4:
+      return convertedClock(first, tokens[1], tokens[2], tokens[3]);
+    default:
+      return failedParse();
   }
-  if (tokens.length === 3) {
-    return convertedNow(tokens[0], tokens[1], tokens[2]) ?? failedParse();
-  }
-  if (tokens.length === 4) {
-    return convertedClock(tokens[0], tokens[1], tokens[2], tokens[3]) ?? failedParse();
-  }
-  return failedParse();
 }
 
 /**
