@@ -1,6 +1,5 @@
 import { EXPONENT_ABS_LIMIT } from "../limits.ts";
-import { add, convert, div, mul, quantity, sqrt, sub } from "../quantity/index.ts";
-import * as numeric from "../quantity/numeric.ts";
+import { compute } from "../quantity/index.ts";
 import {
   isValidEpoch,
   lookupZone,
@@ -49,19 +48,19 @@ function power(base: Quantity, exponent: Quantity): Result {
   if (Math.abs(exponent.value) > EXPONENT_ABS_LIMIT) {
     return { ok: false, reason: { kind: "limit-exceeded", limit: "exponent-magnitude" } };
   }
-  return quantity(numeric.pow(base.value, exponent.value));
+  return compute.quantity(base.value ** exponent.value);
 }
 
 function applyOp(op: BinaryOp, left: Quantity, right: Quantity): Result {
   switch (op) {
     case "+":
-      return add(left, right);
+      return compute.add(left, right);
     case "-":
-      return sub(left, right);
+      return compute.sub(left, right);
     case "*":
-      return mul(left, right);
+      return compute.mul(left, right);
     case "/":
-      return div(left, right);
+      return compute.div(left, right);
     case "^":
       return power(left, right);
   }
@@ -144,7 +143,7 @@ function evaluateUnary(ast: Extract<Ast, { kind: "unary" }>, ctx: EvalCtx): Resu
   if (!inner.ok) {
     return inner;
   }
-  return quantity(-inner.value.value, inner.value.unit.id);
+  return compute.quantity(-inner.value.value, inner.value.unit.id);
 }
 
 function evaluateSqrt(ast: Extract<Ast, { kind: "sqrt" }>, ctx: EvalCtx): Result {
@@ -152,7 +151,7 @@ function evaluateSqrt(ast: Extract<Ast, { kind: "sqrt" }>, ctx: EvalCtx): Result
   if (!inner.ok) {
     return inner;
   }
-  return sqrt(inner.value);
+  return compute.sqrt(inner.value);
 }
 
 function evaluateConvert(ast: Extract<Ast, { kind: "convert" }>, ctx: EvalCtx): Result {
@@ -160,7 +159,7 @@ function evaluateConvert(ast: Extract<Ast, { kind: "convert" }>, ctx: EvalCtx): 
   if (!inner.ok) {
     return inner;
   }
-  return convert(inner.value, ast.toId);
+  return compute.convert(inner.value, ast.toId);
 }
 
 function evaluateBinary(ast: Extract<Ast, { kind: "binary" }>, ctx: EvalCtx): Result {
@@ -178,9 +177,9 @@ function evaluateBinary(ast: Extract<Ast, { kind: "binary" }>, ctx: EvalCtx): Re
 export function evaluateAst(ast: Ast, ctx: EvalCtx): Result {
   switch (ast.kind) {
     case "number":
-      return quantity(ast.value);
+      return compute.quantity(ast.value);
     case "quantity":
-      return quantity(ast.value, ast.unitId);
+      return compute.quantity(ast.value, ast.unitId);
     case "clock":
     case "now":
       return notAnExpression();

@@ -170,42 +170,41 @@ UTC offsets: `UTC`, `GMT`, `Z`, `GMT+8`, `UTC-5:30`.
 
 ### Named zones and cities
 
-| Aliases                                                       | Zone                | Label |
-| ------------------------------------------------------------- | ------------------- | ----- |
-| pacific time, PT, los angeles, la, san francisco, sf, seattle | America/Los_Angeles | PT    |
-| mountain time, MT, denver                                     | America/Denver      | MT    |
-| central time, CT, chicago                                     | America/Chicago     | CT    |
-| eastern time, ET, new york, nyc, usa, us, united states       | America/New_York    | ET    |
-| alaska time, anchorage, alaska                                | America/Anchorage   | AKT   |
-| hawaii time, honolulu, hawaii                                 | Pacific/Honolulu    | HT    |
-| phoenix, arizona                                              | America/Phoenix     | MST   |
-| toronto, ottawa, canada                                       | America/Toronto     | ET    |
-| vancouver                                                     | America/Vancouver   | PT    |
-| mexico city, mexico                                           | America/Mexico_City | CT    |
-| sao paulo, brazil                                             | America/Sao_Paulo   | BRT   |
-| tokyo, japan, JST                                             | Asia/Tokyo          | JST   |
-| IST, india, kolkata, mumbai, delhi, bangalore, blr            | Asia/Calcutta       | IST   |
-| china, beijing, shanghai                                      | Asia/Shanghai       | CST   |
-| singapore                                                     | Asia/Singapore      | SGT   |
-| hong kong                                                     | Asia/Hong_Kong      | HKT   |
-| seoul, korea, south korea                                     | Asia/Seoul          | KST   |
-| dubai                                                         | Asia/Dubai          | GST   |
-| jerusalem, israel                                             | Asia/Jerusalem      | IST   |
-| kathmandu, nepal                                              | Asia/Katmandu       | NPT   |
-| sydney, melbourne, australia                                  | Australia/Sydney    | AET   |
-| auckland, new zealand                                         | Pacific/Auckland    | NZT   |
-| london, uk, britain, england, united kingdom, british time    | Europe/London       | GMT   |
-| paris, france                                                 | Europe/Paris        | CET   |
-| berlin, germany                                               | Europe/Berlin       | CET   |
-| dublin, ireland                                               | Europe/Dublin       | IST   |
-| rome, italy                                                   | Europe/Rome         | CET   |
-| moscow                                                        | Europe/Moscow       | MSK   |
-| cairo, egypt                                                  | Africa/Cairo        | EET   |
-| johannesburg, south africa                                    | Africa/Johannesburg | SAST  |
+| Aliases                                                       | Zone                | Label        |
+| ------------------------------------------------------------- | ------------------- | ------------ |
+| pacific time, PT, los angeles, la, san francisco, sf, seattle | America/Los_Angeles | PT           |
+| mountain time, MT, denver                                     | America/Denver      | MT           |
+| central time, CT, chicago                                     | America/Chicago     | CT           |
+| eastern time, ET, new york, nyc, usa, us, united states       | America/New_York    | ET           |
+| alaska time, anchorage, alaska                                | America/Anchorage   | AKT          |
+| `kind` is `"number"`                                          | `"unit"`            | `"timezone"` | `"operator"` | `"converter"` | `"punctuation"` | `"unknown"`. |
 
-## Internals
+## License
 
-Pipeline stages are exported from `@nicholasdly/subscript/internals` and are not covered by semver.
+| phoenix, arizona | America/Phoenix | MST |
+| toronto, ottawa, canada | America/Toronto | ET |
+| vancouver | America/Vancouver | PT |
+| mexico city, mexico | America/Mexico_City | CT |
+| sao paulo, brazil | America/Sao_Paulo | BRT |
+| tokyo, japan, JST | Asia/Tokyo | JST |
+| IST, india, kolkata, mumbai, delhi, bangalore, blr | Asia/Calcutta | IST |
+| china, beijing, shanghai | Asia/Shanghai | CST |
+| singapore | Asia/Singapore | SGT |
+| hong kong | Asia/Hong_Kong | HKT |
+| seoul, korea, south korea | Asia/Seoul | KST |
+| dubai | Asia/Dubai | GST |
+| jerusalem, israel | Asia/Jerusalem | IST |
+| kathmandu, nepal | Asia/Katmandu | NPT |
+| sydney, melbourne, australia | Australia/Sydney | AET |
+| auckland, new zealand | Pacific/Auckland | NZT |
+| london, uk, britain, england, united kingdom, british time | Europe/London | GMT |
+| paris, france | Europe/Paris | CET |
+| berlin, germany | Europe/Berlin | CET |
+| dublin, ireland | Europe/Dublin | IST |
+| rome, italy | Europe/Rome | CET |
+| moscow | Europe/Moscow | MSK |
+| cairo, egypt | Africa/Cairo | EET |
+| johannesburg, south africa | Africa/Johannesburg | SAST |
 
 ## License
 

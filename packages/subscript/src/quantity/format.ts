@@ -1,4 +1,4 @@
-import { createTzEngine, toWall, type TzEngine } from "../time/index.ts";
+import { createTzEngine, pad2, toWall, type TzEngine } from "../time/index.ts";
 import { isZonedTime, type EvalValue, type Quantity, type ZonedTime } from "../types.ts";
 import { RELATIVE_EPS } from "./numeric.ts";
 
@@ -107,10 +107,6 @@ function formatNumber(
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-function pad2(n: number): string {
-  return String(n).padStart(2, "0");
-}
 
 function formatZoned(zoned: ZonedTime, engine: TzEngine): string {
   const target = toWall(zoned, engine);

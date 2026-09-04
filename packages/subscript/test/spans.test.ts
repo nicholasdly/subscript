@@ -25,7 +25,7 @@ describe("spans", () => {
       ],
     },
     {
-      name: "the + inserted between feet and inches is not coloured",
+      name: "adjacent quantities color as number unit number unit",
       input: "5 ft 11 in",
       spans: [
         { start: 0, end: 1, kind: "number" },

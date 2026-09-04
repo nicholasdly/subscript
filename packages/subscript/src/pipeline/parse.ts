@@ -3,6 +3,7 @@
  *
  * Time queries are a few exact shapes (`3pm PST in Tokyo`). Everything else is
  * a Pratt parser; leftover tokens mean the input is not an expression.
+ * Adjacent quantities (`5 ft 11 in`, `5 m 11 cm`) are addition, same as `+`.
  */
 import { NODE_COUNT_LIMIT, PARSE_DEPTH_LIMIT } from "../limits.ts";
 import type { LimitName } from "../types.ts";
@@ -34,6 +35,22 @@ const BINARY: Record<BinaryOp, Binding> = {
 const PREFIX_BP = BINARY["^"].lbp; // Exponentiation binds inside unary minus.
 const POSTFIX_UNIT_BP = 50;
 const IMPLICIT_MUL_BP = 20;
+const IMPLICIT_ADD_BP = BINARY["+"].lbp;
+
+function isUnitBearing(ast: Ast): boolean {
+  switch (ast.kind) {
+    case "quantity":
+    case "convert":
+      return true;
+    case "unary":
+    case "sqrt":
+      return isUnitBearing(ast.inner);
+    case "binary":
+      return isUnitBearing(ast.left) || isUnitBearing(ast.right);
+    default:
+      return false;
+  }
+}
 
 /**
  * Pratt parser. Every node goes through `node` and every recursion through
@@ -111,6 +128,18 @@ class Parser {
       if (token.kind === "unit" && POSTFIX_UNIT_BP >= minBp) {
         this.advance();
         left = this.applyUnit(left, token.unitId);
+        continue;
+      }
+      // `5 ft 11 in` / `5 m 11 cm`: a quantity beside another quantity is `+`.
+      if (
+        token.kind === "number" &&
+        this.tokens[this.index + 1]?.kind === "unit" &&
+        isUnitBearing(left) &&
+        IMPLICIT_ADD_BP >= minBp
+      ) {
+        const right = this.parseExpr(BINARY["+"].rbp + 1);
+        left =
+          right === undefined ? undefined : this.node({ kind: "binary", op: "+", left, right });
         continue;
       }
       if (token.kind !== "operator") {

@@ -22,16 +22,15 @@ later. A plan whose every item is "it depends" is not a plan.
 zero runtime dependencies, and covers arithmetic, unit conversion, and time zones.
 Queries and aliases are English. `locale` only selects US vs imperial volume
 (`en-GB` → imperial gallon, pint, cup, quart, tablespoon, and fluid ounce;
-everything else → US). `apps/web` is a playground (input → answer plus a JSON
-dump); it is not yet the product demo described in 3.3.
+everything else → US).
 
-| Area       | State                                                                                                    |
-| ---------- | -------------------------------------------------------------------------------------------------------- |
-| Public API | `evaluate`, `createSubscript` (including `.spans`), quantity helpers, `@nicholasdly/subscript/internals` |
-| Pipeline   | normalize → lex → readings → rewrite → parse → eval → format                                             |
-| Tests      | Vitest; accept/reject fixture corpora                                                                    |
-| Publishing | Changesets; MIT `LICENSE` at repo root and in `packages/subscript`                                       |
-| Currency   | Removed; out of scope (see M4)                                                                           |
+| Area       | State                                                                |
+| ---------- | -------------------------------------------------------------------- |
+| Public API | `evaluate`, `createSubscript` (including `.spans`), quantity helpers |
+| Pipeline   | normalize → lex → readings → parse → eval → format                   |
+| Tests      | Vitest; accept/reject fixture corpora                                |
+| Publishing | Changesets; MIT `LICENSE` at repo root and in `packages/subscript`   |
+| Currency   | Removed; out of scope (see M4)                                       |
 
 **Progress metric going forward:** corpus pass rate and alias coverage, not parser
 elegance (§14).
@@ -53,19 +52,21 @@ original plan are met unless noted.
 
 ### M1 — `Quantity`, dimensions, affine units ✓
 
-- Rational-exponent dimension vector over seven SI base dimensions plus
-  information (ISO 80000-13)
+- Rational-exponent dimension vector over time, length, mass, and temperature,
+  plus information (ISO 80000-13). Ampere, mole, and candela stay out until
+  the catalog has those units.
 - Absolute vs difference temperature as distinct affine kinds
 - Typed `dimension-mismatch` failures; no throws for input-shaped errors
 - Mixed-unit rules: assimilation, larger unit wins, named products only
 - Hand-authored unit table (length, mass, time, temperature, area, volume, speed,
   force, energy, power, pressure, information) with a cited source per entry
 
-### M2 — Lexer, rewrite, parser ✓
+### M2 — Lexer and parser ✓
 
 - Leftmost-longest trie; `in` as converter vs inch via alternate readings and ranking
 - Multi-word aliases live in the trie (`fluid ounce`, `nautical mile`,
-  `light year`, `pacific time`, …). Rewrite inserts implicit `+` for `5 ft 11 in`
+  `light year`, `pacific time`, …). Adjacent quantities add (`5 ft 11 in`,
+  `5 m 11 cm`), same binding as `+`.
 - Pratt parser; strict full-input consumption
 - Input limits: 256 chars, parse depth 32, 64 AST nodes, `|exponent|` 1000; no
   `eval` / `new Function`
@@ -97,10 +98,10 @@ network. `100 usd in eur` is `not-an-expression`. See 3.3 and 5.5.
 | Decision                                | Shipped behavior                                                          |
 | --------------------------------------- | ------------------------------------------------------------------------- |
 | 3.1 Strict consumption                  | Leftover tokens → `not-an-expression`                                     |
-| 3.2 float64 + display predictability    | `quantity/numeric.ts` seam; format-time rounding; precision refusal       |
+| 3.2 float64 + display predictability    | format-time rounding; checked add/sub; operators elsewhere                |
 | 3.3 Units first, time last, no currency | Matches plan; currency reversed and dropped                               |
 | 3.4 Hand-authored MIT data              | Cited entries in `units/table.ts`; no GPL vendoring                       |
-| 4.1–4.3 Three API layers                | `evaluate` / `createSubscript` / `.spans` + `internals`                   |
+| 4.1–4.3 Three API layers                | `evaluate` / `createSubscript` / `.spans`                                 |
 | 4.4 Result type                         | `Result`, `Failure`, `alternates` on success; corpus covers `in`          |
 | 5.6 Time zone policy                    | Closed list; PST/PDT vs `pacific time`; capital-city rule; `IST` is India |
 
@@ -127,13 +128,7 @@ policy is in the package README: typed `G` is gram, compact `G` is display-only,
 
 Track progress by corpus pass rate, not by feature count.
 
-### 2.2 Application and repo
-
-| Item                    | Notes                                                                           |
-| ----------------------- | ------------------------------------------------------------------------------- |
-| `apps/web` product demo | 3.3: units-and-arithmetic calculator with `spans` highlighting, not a JSON dump |
-
-### 2.3 Explicitly deferred (not oversights)
+### 2.2 Explicitly deferred (not oversights)
 
 Documented decisions — easy to add later, not on the critical path:
 
@@ -147,7 +142,7 @@ Documented decisions — easy to add later, not on the critical path:
 - Variables and multi-line documents; bytecode / VM
 - Close read of `solve-engine` source
 
-### 2.4 Research questions — closed vs open
+### 2.3 Research questions — closed vs open
 
 **Closed by shipping:**
 
@@ -157,6 +152,7 @@ Documented decisions — easy to add later, not on the critical path:
 - Formatting without `Intl` `style: "unit"`; own symbol table via `Unit.symbol`
 - Runtime tzdata over shipping `vvo/tzdb`; DST fixtures use 2026 transitions in
   the corpus
+- Stay on float64; no decimal or bigint numeric backend (currency out of scope)
 
 **Still worth answering if the relevant deferred item moves:**
 
@@ -170,7 +166,8 @@ Documented decisions — easy to add later, not on the critical path:
 ## 3. Decisions taken
 
 These four were resolved before implementation because each one changes the shape
-of everything below. All four shipped as written.
+of everything below. They shipped as written, except the numeric-backend seam in
+3.2, which was later dropped.
 
 ### 3.1 Strict input consumption, with tolerance as a possible later mode
 
@@ -206,10 +203,15 @@ legibility directly:
   `sqrt(2) - 2^0.5` shows `0`, and **refuse** calculations that cannot retain
   accuracy (`1e100 + 1 - 1e100`) rather than silently returning `0`.
 
-`Quantity.value` stays `number`, but every arithmetic operation goes through a
-single module (`quantity/numeric.ts`) so swapping the numeric backend later is a
-contained change rather than a rewrite. Revisit if the corpus produces a case
-where float64 is genuinely visible.
+`Quantity.value` stays `number`. Operand `+`/`−` goes through `addChecked` /
+`subChecked` in `quantity/numeric.ts`: refuse a lost addend, snap cancellation
+residue to 0. Scale math, multiply, divide, power, and roots use operators
+directly.
+
+The original write-up routed every arithmetic call through that module so a
+later decimal backend would be a contained change. That seam is gone. Currency
+is out of scope, and magnitudes float64 cannot represent are `precision-loss`,
+not a reason to change the type.
 
 ### 3.3 Units and arithmetic first; time zones last. Currency is out of scope.
 
@@ -223,11 +225,6 @@ the engine async and ties a free library to a third-party API. The second is
 configuration the 95% path was never supposed to need. Neither belongs in the
 library. Historical rates, crypto, and an injected provider are the same tradeoff
 deferred; they are not later work.
-
-When application work begins, `apps/web` should demo a units-and-arithmetic
-calculator first. A demo that does one domain convincingly is a better artifact
-than one that does four badly. **This is the main remaining application
-milestone** (see 2.2).
 
 ### 3.4 Hand-authored unit data, cited per entry; `subscript` stays MIT
 
@@ -306,9 +303,8 @@ subscript.spans("20 c to f");
 // [{ start: 0, end: 2, kind: "number" }, { start: 3, end: 4, kind: "unit" }, ...]
 ```
 
-`spans()` is a stable, documented, semantic view. The raw pipeline stages
-(`normalize`, `lex`, `rewrite`, `parse`) are exported from
-`@nicholasdly/subscript/internals` and explicitly **not** covered by semver.
+`spans()` is a stable, documented, semantic view. Raw pipeline stages
+(`normalize`, `lex`, `parse`) are not a published export.
 
 ### 4.4 The result type
 
@@ -341,7 +337,7 @@ both is neither.
 ## 5. How to approach each kind of parsing
 
 The pipeline is settled — every mature system in the space converges on it (§2):
-normalize → lex → rewrite → parse → evaluate → format. What follows is per-domain
+normalize → lex → parse → evaluate → format. What follows is per-domain
 design reference; the engine matches this shape.
 
 ### 5.1 Arithmetic
@@ -360,11 +356,13 @@ shorthand (`km m`).
 
 ### 5.2 Units
 
-Dimension vector of **rational** exponents over seven SI base dimensions plus
-information (§7.1, ISO 80000-13). Absolute and difference temperatures are
-**distinct types** (§7.2). Mixed-unit arithmetic follows Soulver's published
-rules (§6). Calendar-unit lengths (year, month) are named, documented constants
-in the catalog. A light year uses the Julian year, not that catalog year.
+Dimension vector of **rational** exponents over time, length, mass, and
+temperature, plus information (§7.1, ISO 80000-13). Ampere, mole, and candela
+are omitted until the catalog has those units. Absolute and difference
+temperatures are **distinct types** (§7.2). Mixed-unit arithmetic follows
+Soulver's published rules (§6). Calendar-unit lengths (year, month) are named,
+documented constants in the catalog. A light year uses the Julian year, not
+that catalog year.
 
 ### 5.3 Lexing
 
@@ -373,11 +371,12 @@ alternate readings; the conductor ranks readings and prefers `in` as converter
 when that reading evaluates. Matching is ASCII case-folded. `locale` selects
 which volume aliases are in the trie, not a ranking tiebreaker.
 
-### 5.4 The rewrite stage
+### 5.4 Adjacent quantities
 
-Implicit operator insertion (`5 ft 11 in`). Phrase fusion is not a rewrite step —
-multi-word aliases are keys in the trie (`light year`, `fluid ounce`,
-`nautical mile`, `pacific time`).
+A quantity beside another quantity is `+` (`5 ft 11 in`, `5 m 11 cm`), at the
+same binding power as explicit `+`. Bare numbers beside each other (`2 3`) are
+not an expression. Phrase fusion is not implicit addition — multi-word aliases
+are keys in the trie (`light year`, `fluid ounce`, `nautical mile`, `pacific time`).
 
 ### 5.5 Currency — out of scope
 
@@ -404,7 +403,7 @@ place: negative corpus, typed failures, `alternates`, precision refusal.
 ### 6.2 Data licensing is a real legal exposure
 
 Hand-authored, cited data only. No GPL vendoring. Before touching GeoNames, IATA,
-or UDUNITS, answer the license questions in 2.4.
+or UDUNITS, answer the license questions in 2.3.
 
 ### 6.3 Every ambiguity has no correct answer
 
@@ -436,7 +435,7 @@ tables are the bulk of the bundle.
 
 The reasons to build are control over the alias table, trigger behavior, and
 ambiguity policy. The parser was never the moat. A close read of `solve-engine`
-is deferred (2.3).
+is deferred (2.2).
 
 ### 6.9 Performance is a constraint, not a goal
 

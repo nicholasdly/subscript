@@ -1,6 +1,6 @@
 {
   "name": "@nicholasdly/subscript",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Natural-language evaluation of arithmetic, unit conversion, and time zones.",
   "keywords": [
     "arithmetic",
@@ -40,16 +40,6 @@
       "require": {
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
-      }
-    },
-    "./internals": {
-      "import": {
-        "types": "./dist/internals.d.ts",
-        "default": "./dist/internals.js"
-      },
-      "require": {
-        "types": "./dist/internals.d.cts",
-        "default": "./dist/internals.cjs"
       }
     },
     "./package.json": "./package.json"
