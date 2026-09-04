@@ -19,8 +19,8 @@ export default function Page() {
           </Link>
         </h1>
         <p className="text-muted-foreground mb-4">
-          A natural language parser and evaluator for unit conversion, time zone conversion, and
-          arithmetic — zero dependencies and tree-shakeable.
+          Evaluate arithmetic, unit conversions, and time zones from natural language — zero
+          dependencies or network requests.
         </p>
         <Demo />
       </div>
@@ -33,17 +33,21 @@ export default function Page() {
       <div>
         <h2 className="mb-1 text-lg font-medium">Usage</h2>
         <p className="text-muted-foreground mb-4">
-          Evaluate natural language queries anywhere in your project.
+          Evaluate natural language queries anywhere in your project using the default configured{" "}
+          <Code>evaluate</Code> function.
         </p>
         <CodeBlock language="typescript">
           {[
             'import { evaluate } from "@nicholasdly/subscript";',
             "",
-            "// ...",
+            'evaluate("20 c to f");',
+            '// { ok: true, text: "68 °F", ... }',
             "",
             'evaluate("1 m in ft");',
-            'evaluate("2 - sqrt(25) * -3");',
-            'evaluate("now in cst");',
+            '// { ok: true, text: "3.28084 ft", ... }',
+            "",
+            'evaluate("(2 + 3) * 4 km in miles");',
+            '// { ok: true, text: "12.4274 mi", ... }',
           ].join("\n")}
         </CodeBlock>
       </div>
@@ -51,20 +55,19 @@ export default function Page() {
       <div>
         <h2 className="mb-1 text-lg font-medium">Configuration</h2>
         <p className="text-muted-foreground mb-4">
-          When the default <Code>evaluate</Code> function isn't enough, you can use{" "}
-          <Code>createSubscript</Code> to configure a custom parser.
+          Use <Code>createSubscript</Code> to configure the clock, locale, and format of the parser.
         </p>
         <CodeBlock language="typescript">
           {[
-            'import { createSubscript } from "@nicholasdly/subscript";',
-            "",
-            "// ...",
+            'import { createSubscript, isZonedTime } from "@nicholasdly/subscript";',
             "",
             "const subscript = createSubscript({",
-            "  compact: false,",
+            "  now: () => ({ epochMilliseconds: Date.UTC(2026, 0, 15, 18, 0, 0) }),",
             "});",
             "",
-            'subscript.evaluate("100000 + 200000");',
+            'const time = subscript.evaluate("3pm PST in Tokyo");',
+            '// time.text === "8:00 AM JST, Jan 16"',
+            "// isZonedTime(time.value) === true",
           ].join("\n")}
         </CodeBlock>
       </div>
@@ -72,9 +75,7 @@ export default function Page() {
       <div>
         <h2 className="mb-1 text-lg font-medium">Spans</h2>
         <p className="text-muted-foreground mb-4">
-          A <Code>Span</Code> is a range over the original query string. They represent which pieces
-          of the input are numbers, units, converters, and so on, without exposing the parser's
-          internal tokens.
+          <Code>spans</Code> returns highlight ranges for the original string. It does not evaluate.
         </p>
         <CodeBlock language="typescript">
           {[
